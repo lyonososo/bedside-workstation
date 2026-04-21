@@ -210,11 +210,12 @@ function _initSB(){
 }
 async function _ensureAuthUser(){
   try{
-    var listRes=await fetch(_SB_URL+'/auth/v1/admin/users?email='+encodeURIComponent(_deviceEmail),{headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY}});
+    var listRes=await fetch(_SB_URL+'/auth/v1/admin/users?per_page=1000',{headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY}});
     if(listRes.ok){
       var listData=await listRes.json();
-      if(listData.users&&listData.users.length>0){
-        _currentUser.id=listData.users[0].id;
+      var found=listData.users&&listData.users.filter(function(u){return u.email===_deviceEmail;});
+      if(found&&found.length>0){
+        _currentUser.id=found[0].id;
         localStorage.setItem('gdhtcm_user',JSON.stringify({id:_currentUser.id,name:_currentUser.name,email:_deviceEmail}));
         return;
       }
