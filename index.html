@@ -279,10 +279,10 @@ async function _syncToCloud(){
         body:JSON.stringify({user_id:_currentUser.id,date:dk,shift:log.shift,count:log.count||0,tax_mode:!!log.taxMode,meal_break:log.mealBreak||null})
       });
     }
-    if(_currentUser.name){
+    var _syncName=_currentUser.name||((data&&data.profile)?data.profile.name:null);if(_syncName){
       await fetch(_SB_URL+'/rest/v1/profiles',{
         method:'POST',headers:_sbHeaders,
-        body:JSON.stringify({id:_currentUser.id,name:_currentUser.name,title:'初级技师',avatar_type:'emoji',avatar_emoji:'\ud83d\udc68\u200d\u2695\ufe0f'})
+        body:JSON.stringify({id:_currentUser.id,name:_syncName,title:'初级技师',avatar_type:'emoji',avatar_emoji:'\ud83d\udc68\u200d\u2695\ufe0f'})
       });
     }
     _updateSyncDot('ok');
@@ -1013,6 +1013,8 @@ openModal(h);
 }
 function saveEditProfile(){
 data.profile.name=document.getElementById('ep-name').value.trim();
+_currentUser.name=data.profile.name;
+localStorage.setItem('gdhtcm_user',JSON.stringify({id:_currentUser.id,name:_currentUser.name,email:_deviceEmail}));
 data.profile.height=parseInt(document.getElementById('ep-height').value)||0;
 data.profile.weight=parseInt(document.getElementById('ep-weight').value)||0;
 var newCampus=document.getElementById('ep-campus').value;
@@ -1038,7 +1040,10 @@ data.profile.height=parseInt(document.getElementById('ob-height').value)||0;
 data.profile.weight=parseInt(document.getElementById('ob-weight').value)||0;
 var newCampus=document.getElementById('ob-campus').value;
 if(newCampus!==state.campus){switchCampus(newCampus);}
-data._onboarded=true;saveData();closeModal();render();toast('🎉 设置完成！');
+data._onboarded=true;
+_currentUser.name=data.profile.name;
+localStorage.setItem('gdhtcm_user',JSON.stringify({id:_currentUser.id,name:_currentUser.name,email:_deviceEmail}));
+saveData();closeModal();render();toast('🎉 设置完成！');
 }
 
 // ===== FLOOR NAVIGATION =====
