@@ -243,6 +243,13 @@ async function _syncToCloud(){
         tax_mode:!!log.taxMode,meal_break:log.mealBreak||null
       },{onConflict:'user_id,date'});
     }
+    // Also sync user name to profiles
+    if(_currentUser.name){
+      await _sb.from('profiles').upsert({
+        id:_currentUser.id,name:_currentUser.name,title:'初级技师',
+        avatar_type:'emoji',avatar_emoji:'\ud83d\udc68\u200d\u2695\ufe0f'
+      },{onConflict:'id'});
+    }
     _updateSyncDot('ok');
   }catch(e){console.warn('Sync error:',e);_updateSyncDot('error');}
   _isSyncing=false;
