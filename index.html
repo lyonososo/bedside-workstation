@@ -225,28 +225,39 @@ async function handleLogin(){
   try{
     var{data,error}=await _sb.auth.signInWithPassword({email:email,password:pwd});
     if(error)throw error;
+    _currentUser=data.user;
+    document.getElementById('login-page').classList.add('hide');
+    document.getElementById('app').classList.add('show');
+    render();
+    if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
+    fetchWeather();
+    _loadFromCloud().then(function(){render();});
   }catch(e){
     var msg=(e.message||'').toLowerCase();
     if(msg.indexOf('invalid login')>=0||msg.indexOf('invalid credentials')>=0||msg.indexOf('not found')>=0){
       try{
-        var{error:signUpErr}=await _sb.auth.signUp({email:email,password:pwd});
+        var{data:sData,error:signUpErr}=await _sb.auth.signUp({email:email,password:pwd});
         if(signUpErr)throw signUpErr;
-        errEl.style.color='var(--green,#006B3F)';errEl.textContent='✅ 注册成功！';
         try{
-          var{data:loginData,error:loginErr}=await _sb.auth.signInWithPassword({email:email,password:pwd});
+          var{data:lData,error:loginErr}=await _sb.auth.signInWithPassword({email:email,password:pwd});
           if(loginErr)throw loginErr;
-        }catch(e3){}
-        return;
+          _currentUser=lData.user;
+          document.getElementById('login-page').classList.add('hide');
+          document.getElementById('app').classList.add('show');
+          render();
+          if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
+          fetchWeather();
+          _loadFromCloud().then(function(){render();});
+        }catch(e3){
+          errEl.style.color='var(--green,#006B3F)';errEl.textContent='✅ 注册成功！请重新登录';
+        }
       }catch(e2){
         var msg2=(e2.message||'').toLowerCase();
         if(msg2.indexOf('rate limit')>=0||msg2.indexOf('too many')>=0){errEl.textContent='操作太频繁，请等1分钟再试';}
-        else if(msg2.indexOf('already registered')>=0||msg2.indexOf('already been')>=0){errEl.textContent='该邮箱已注册，请直接登录';}
-        else{errEl.textContent='注册失败：'+e2.message;}
-        btn.disabled=false;btn.textContent='登录 / 注册';return;
+        else if(msg2.indexOf('already registered')>=0||msg2.indexOf('already been')>=0){errEl.textContent='该邮箱已注册，密码不对';}
+        else{errEl.textContent='注册失败';}
       }
-    }
-    if(msg.indexOf('rate limit')>=0||msg.indexOf('too many')>=0){errEl.textContent='操作太频繁，请等1分钟再试';}
-    else if(msg.indexOf('email not confirmed')>=0){errEl.textContent='邮箱未验证，请检查收件箱';}
+    }else if(msg.indexOf('rate limit')>=0||msg.indexOf('too many')>=0){errEl.textContent='操作太频繁，请等1分钟再试';}
     else{errEl.textContent='登录失败，请检查邮箱和密码';}
   }
   btn.disabled=false;btn.textContent='登录 / 注册';
