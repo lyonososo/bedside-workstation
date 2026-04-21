@@ -185,13 +185,21 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
 <div class="toast" id="toast"></div>
 
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
-// ===== INIT (no login) =====
-var _currentUser={id:'local',name:'技师'};
+// ===== CLOUD SYNC (no login, silent) =====
+var _SB_URL='https://uzcijftcckvyfirlhtci.supabase.co';
+var _SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6Y2lqZnRjY2t2eWZpcmxodGNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njc5MTg3NCwiZXhwIjoyMDkyMzY3ODc0fQ.63bb31Bzm74EPJMQeeXKvtrezumCNotKb0G_7KFw8qU';
+var _sb=null;
+var _currentUser={id:'07da79c4-76bb-496a-9307-2c18b0e6112d',name:'技师'};
+var _syncTimer=null;
+var _isSyncing=false;
+
 function _initSB(){
+  try{_sb=window.supabase.createClient(_SB_URL,_SB_KEY);}catch(e){console.warn('SB init failed:',e);}
   var saved=localStorage.getItem('gdhtcm_user');
-  if(saved){try{_currentUser=JSON.parse(saved);}catch(e){}}
+  if(saved){try{var u=JSON.parse(saved);if(u.name)_currentUser.name=u.name;}catch(e){}}
   _enterApp();
 }
 function _enterApp(){
@@ -199,10 +207,51 @@ function _enterApp(){
   render();
   if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
   fetchWeather();
+  _loadFromCloud().then(function(){render();});
 }
-function _queueSync(){}
-function _loadFromCloud(){return Promise.resolve();}
-function _updateSyncDot(){}
+function _queueSync(){clearTimeout(_syncTimer);_syncTimer=setTimeout(function(){_syncToCloud();},2000);}
+async function _loadFromCloud(){
+  if(!_sb||!_currentUser)return;
+  try{
+    var logsRes=await _sb.from('daily_logs').select('*').eq('user_id',_currentUser.id).order('date');
+    if(logsRes.data){
+      logsRes.data.forEach(function(log){
+        var existing=data.logs[log.date];
+        if(!existing){
+          data.logs[log.date]={shift:log.shift||'rest',count:log.count||0,taxMode:!!log.tax_mode,patients:[],mealBreak:log.meal_break,_timerStart:null,_timerPaused:false,_timerElapsed:0};
+        }else{
+          existing.shift=log.shift||existing.shift;
+          existing.count=log.count||existing.count;
+          existing.taxMode=!!log.tax_mode;
+          if(log.meal_break)existing.mealBreak=log.meal_break;
+        }
+      });
+    }
+    saveData();
+    _updateSyncDot('ok');
+  }catch(e){console.warn('Cloud load error:',e);_updateSyncDot('error');}
+}
+async function _syncToCloud(){
+  if(!_sb||!_currentUser||_isSyncing)return;
+  _isSyncing=true;_updateSyncDot('syncing');
+  try{
+    var dates=Object.keys(data.logs);
+    for(var i=0;i<dates.length;i++){
+      var dk=dates[i],log=data.logs[dk];
+      await _sb.from('daily_logs').upsert({
+        user_id:_currentUser.id,date:dk,shift:log.shift,count:log.count||0,
+        tax_mode:!!log.taxMode,meal_break:log.mealBreak||null
+      },{onConflict:'user_id,date'});
+    }
+    _updateSyncDot('ok');
+  }catch(e){console.warn('Sync error:',e);_updateSyncDot('error');}
+  _isSyncing=false;
+}
+function _updateSyncDot(status){
+  var el=document.getElementById('sync-dot');
+  if(!el)return;
+  el.className='sync-dot '+status;
+}
 async function handleLogout(){
   openModal('<div style="text-align:center;padding:16px 0"><div style="font-size:44px;margin-bottom:10px">👋</div><div style="font-size:17px;font-weight:800;margin-bottom:6px">确认清除所有数据？</div><div style="font-size:13px;color:var(--text2,#8E8E93);margin-bottom:16px">此操作不可恢复</div><div style="display:flex;gap:8px"><button class="btn btn-outline" style="flex:1" onclick="closeModal()">取消</button><button class="btn btn-danger" style="flex:1" onclick="localStorage.clear();location.reload()">清除</button></div></div>');
 }
@@ -221,7 +270,7 @@ var data={logs:{},profile:{name:'',height:0,weight:0,hospital:'',dept:''},favori
 
 function today(){return new Date().toISOString().slice(0,10);}
 function loadData(){try{var s=localStorage.getItem('gdhtcm_data');if(s){var d=JSON.parse(s);data.logs=d.logs||{};data.profile=Object.assign(data.profile,d.profile||{});data.favorites=d.favorites||[];data.contacts=d.contacts||data.contacts;data.notes=d.notes||[];data.handover=d.handover||'';data.achievements=d.achievements||{};}}catch(e){}}
-function saveData(){try{localStorage.setItem('gdhtcm_data',JSON.stringify(data));}catch(e){}}
+function saveData(){try{localStorage.setItem('gdhtcm_data',JSON.stringify(data));}catch(e){}if(_currentUser)_queueSync();}
 function getLog(day){if(!data.logs[day])data.logs[day]={shift:'rest',count:0,taxMode:false,patients:[],mealBreak:null,_timerStart:null,_timerPaused:false,_timerElapsed:0};return data.logs[day];}
 function applyTheme(){if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}
 function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('theme',d?'dark':'light');render();}
