@@ -187,18 +187,47 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
 
 <script>
 
-// ===== CLOUD SYNC (no login, no SDK, pure fetch) =====
+// ===== CLOUD SYNC (no login, no SDK, pure fetch, multi-user) =====
 var _SB_URL='https://uzcijftcckvyfirlhtci.supabase.co';
 var _SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6Y2lqZnRjY2t2eWZpcmxodGNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njc5MTg3NCwiZXhwIjoyMDkyMzY3ODc0fQ.63bb31Bzm74EPJMQeeXKvtrezumCNotKb0G_7KFw8qU';
-var _currentUser={id:'07da79c4-76bb-496a-9307-2c18b0e6112d',name:'技师'};
+var _currentUser={id:null,name:'技师'};
 var _syncTimer=null;
 var _isSyncing=false;
 var _sbHeaders={'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'};
+var _deviceEmail=null;
+
+function _genUUID(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 
 function _initSB(){
   var saved=localStorage.getItem('gdhtcm_user');
-  if(saved){try{var u=JSON.parse(saved);if(u.name)_currentUser.name=u.name;}catch(e){}}
-  _enterApp();
+  if(saved){try{var u=JSON.parse(saved);if(u.id)_currentUser.id=u.id;if(u.name)_currentUser.name=u.name;if(u.email)_deviceEmail=u.email;}catch(e){}}
+  if(!_currentUser.id||!_deviceEmail){
+    _currentUser.id=_genUUID();
+    _deviceEmail='device-'+_currentUser.id.slice(0,8)+'@workstation.local';
+    localStorage.setItem('gdhtcm_user',JSON.stringify({id:_currentUser.id,name:_currentUser.name,email:_deviceEmail}));
+  }
+  _ensureAuthUser().then(function(){_enterApp();});
+}
+async function _ensureAuthUser(){
+  try{
+    var listRes=await fetch(_SB_URL+'/auth/v1/admin/users?email='+encodeURIComponent(_deviceEmail),{headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY}});
+    if(listRes.ok){
+      var listData=await listRes.json();
+      if(listData.users&&listData.users.length>0){
+        _currentUser.id=listData.users[0].id;
+        localStorage.setItem('gdhtcm_user',JSON.stringify({id:_currentUser.id,name:_currentUser.name,email:_deviceEmail}));
+        return;
+      }
+    }
+    var createRes=await fetch(_SB_URL+'/auth/v1/admin/users',{
+      method:'POST',headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email:_deviceEmail,password:'x9K2mP4qR7',email_confirm:true})
+    });
+    if(createRes.ok){
+      var userData=await createRes.json();
+      if(userData.id){_currentUser.id=userData.id;localStorage.setItem('gdhtcm_user',JSON.stringify({id:_currentUser.id,name:_currentUser.name,email:_deviceEmail}));}
+    }
+  }catch(e){console.warn('Auth user setup error:',e);}
 }
 function _enterApp(){
   document.getElementById('app').classList.add('show');
@@ -209,6 +238,7 @@ function _enterApp(){
 }
 function _queueSync(){clearTimeout(_syncTimer);_syncTimer=setTimeout(function(){_syncToCloud();},2000);}
 async function _loadFromCloud(){
+  if(!_currentUser.id)return;
   try{
     var res=await fetch(_SB_URL+'/rest/v1/daily_logs?user_id=eq.'+_currentUser.id+'&select=*&order=date.asc',{headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY}});
     if(!res.ok)throw new Error(res.status);
@@ -231,7 +261,7 @@ async function _loadFromCloud(){
   }catch(e){console.warn('Cloud load error:',e);_updateSyncDot('error');}
 }
 async function _syncToCloud(){
-  if(!_currentUser||_isSyncing)return;
+  if(!_currentUser||!_currentUser.id||_isSyncing)return;
   _isSyncing=true;_updateSyncDot('syncing');
   try{
     var dates=Object.keys(data.logs);
