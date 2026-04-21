@@ -184,11 +184,11 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
   <div class="login-title">个人床边工作站</div>
   <div class="login-sub">广东省中医院 · 放射科<br>请登录以同步数据到云端</div>
   <div class="login-form">
-    <input class="login-input" id="login-email" type="email" placeholder="输入你的邮箱" autocomplete="email">
-    <input class="login-input" id="login-pwd" type="password" placeholder="密码（至少6位）" autocomplete="current-password">
+    <input class="login-input" id="login-name" type="text" placeholder="你的姓名" autocomplete="name">
+    <input class="login-input" id="login-pwd" type="password" placeholder="密码（至少4位）" autocomplete="current-password">
     <button class="login-btn" id="login-btn" onclick="handleLogin()">登录 / 注册</button>
     <div class="login-error" id="login-error"></div>
-    <div class="login-hint">首次输入邮箱+密码自动注册<br>之后用相同邮箱+密码登录，数据自动同步</div>
+    <div class="login-hint">首次输入姓名+密码自动注册<br>之后用相同姓名+密码登录，数据自动同步</div>
   </div>
 </div>
 <div id="splash"><div class="logo">🏥</div><h1>个人床边工作量记录工作站</h1><p>v3.0 Cloud · Lyon <span id="sync-dot" class="sync-dot ok"></span></p></div>
@@ -211,34 +211,39 @@ function _initSB(){
 
 
 
+function _hashPwd(pwd){var h=0;for(var i=0;i<pwd.length;i++){h=((h<<5)-h)+pwd.charCodeAt(i);h|=0;}return 'u'+Math.abs(h).toString(36);}
+
 async function handleLogin(){
-  var email=document.getElementById('login-email').value.trim();
+  var name=document.getElementById('login-name').value.trim();
   var pwd=document.getElementById('login-pwd').value;
   var errEl=document.getElementById('login-error');
   var btn=document.getElementById('login-btn');
-  if(!email){errEl.textContent='请输入邮箱';return;}
-  if(!pwd||pwd.length<6){errEl.textContent='密码至少6位';return;}
+  if(!name){errEl.textContent='请输入姓名';return;}
+  if(!pwd||pwd.length<4){errEl.textContent='密码至少4位';return;}
   errEl.textContent='';btn.disabled=true;btn.textContent='登录中...';
   try{
-    var{data,error}=await _sb.auth.signInWithPassword({email:email,password:pwd});
-    if(error){
-      if(error.message.includes('Invalid login')||error.message.includes('Invalid credentials')){
-        var{data:signData,error:signErr}=await _sb.auth.signUp({email:email,password:pwd});
-        if(signErr)throw signErr;
-        _currentUser={id:signData.user.id,email:email};
-        data.profile.name=email.split('@')[0];
-        saveData();
-        _enterApp();
-      }else{throw error;}
+    var hash=_hashPwd(pwd);
+    var userId=name.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+hash.slice(0,6);
+    // check if profile exists in cloud
+    var{data:existing}=await _sb.from('profiles').select('id,name').eq('id',userId).maybeSingle();
+    // check local password
+    var localUsers=JSON.parse(localStorage.getItem('gdhtcm_users')||'{}');
+    if(existing){
+      if(localUsers[userId]&&localUsers[userId]!==hash){errEl.textContent='密码错误';btn.disabled=false;btn.textContent='登录 / 注册';return;}
+      _currentUser={id:userId,name:name};
+      localUsers[userId]=hash;localStorage.setItem('gdhtcm_users',JSON.stringify(localUsers));
     }else{
-      _currentUser={id:data.user.id,email:email};
-      var{data:prof}=await _sb.from('profiles').select('name').eq('id',data.user.id).maybeSingle();
-      if(prof&&prof.name)data.profile.name=prof.name;
-      saveData();
-      _enterApp();
+      // register
+      var{error:insErr}=await _sb.from('profiles').insert({id:userId,name:name,title:'初级技师'});
+      if(insErr)throw insErr;
+      _currentUser={id:userId,name:name};
+      localUsers[userId]=hash;localStorage.setItem('gdhtcm_users',JSON.stringify(localUsers));
     }
+    data.profile.name=name;
+    saveData();
+    _enterApp();
   }catch(e){
-    errEl.textContent=e.message||'登录失败，请重试';
+    errEl.textContent='登录失败，请重试';
     console.error(e);
   }
   btn.disabled=false;btn.textContent='登录 / 注册';
@@ -263,10 +268,6 @@ async function _loadFromCloud(){
     if(profileRes.data){
       var p=profileRes.data;
       if(p.name)data.profile.name=p.name;
-      
-      
-      
-      
     }
     if(logsRes.data){
       logsRes.data.forEach(function(log){
@@ -293,9 +294,7 @@ async function _syncToCloud(){
   _isSyncing=true;_updateSyncDot('syncing');
   try{
     await _sb.from('profiles').upsert({
-      id:_currentUser.id,name:data.profile.name||'',
-      height:data.profile.height||0,weight:data.profile.weight||0,
-      hospital:data.profile.hospital||'',dept:data.profile.dept||''
+      id:_currentUser.id,name:data.profile.name||'',title:'初级技师'
     },{onConflict:'id'});
     var dates=Object.keys(data.logs);
     for(var i=0;i<dates.length;i++){
@@ -325,7 +324,7 @@ async function _doLogout(){
   closeModal();
   document.getElementById('login-page').classList.remove('hide');
   document.getElementById('app').classList.remove('show');
-  document.getElementById('login-email').value='';
+  document.getElementById('login-name').value='';
   document.getElementById('login-error').textContent='';
   document.getElementById('login-btn').disabled=false;
   document.getElementById('login-btn').textContent='登录 / 注册';
