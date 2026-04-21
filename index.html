@@ -184,10 +184,11 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
   <div class="login-title">个人床边工作站</div>
   <div class="login-sub">广东省中医院 · 放射科<br>请登录以同步数据到云端</div>
   <div class="login-form">
-    <input class="login-input" id="login-email" type="email" placeholder="输入你的邮箱" autocomplete="email">
-    <button class="login-btn" id="login-btn" onclick="handleLogin()">发送登录链接</button>
+    <input class="login-input" id="login-email" type="email" placeholder="邮箱" autocomplete="email">
+    <input class="login-input" id="login-pwd" type="password" placeholder="密码（至少6位）" autocomplete="current-password">
+    <button class="login-btn" id="login-btn" onclick="handleLogin()">登录 / 注册</button>
     <div class="login-error" id="login-error"></div>
-    <div class="login-hint">点击发送后，查收邮箱中的登录链接<br>点击链接即可自动登录</div>
+    <div class="login-hint">首次使用自动注册，之后用相同邮箱密码登录<br>数据自动同步到云端</div>
   </div>
 </div>
 <div id="splash"><div class="logo">🏥</div><h1>个人床边工作量记录工作站</h1><p>v3.0 Cloud · Lyon <span id="sync-dot" class="sync-dot ok"></span></p></div>
@@ -215,20 +216,28 @@ async function _checkSession(){
 
 async function handleLogin(){
   var email=document.getElementById('login-email').value.trim();
+  var pwd=document.getElementById('login-pwd').value;
   var errEl=document.getElementById('login-error');
   var btn=document.getElementById('login-btn');
   if(!email||!email.includes('@')){errEl.textContent='请输入有效邮箱';return;}
-  errEl.textContent='';btn.disabled=true;btn.textContent='发送中...';
+  if(!pwd||pwd.length<6){errEl.textContent='密码至少6位';return;}
+  errEl.textContent='';btn.disabled=true;btn.textContent='登录中...';
   try{
-    var{error}=await _sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+    var{error}=await _sb.auth.signInWithPassword({email:email,password:pwd});
     if(error)throw error;
-    errEl.style.color='var(--green,#006B3F)';errEl.textContent='✅ 已发送！请查收邮箱点击登录链接';
-    btn.textContent='已发送';
-    setTimeout(function(){btn.disabled=false;btn.textContent='重新发送';errEl.style.color='';errEl.textContent='';},5000);
   }catch(e){
-    errEl.style.color='var(--red2,#FF3B30)';errEl.textContent=e.message||'发送失败，请重试';
-    btn.disabled=false;btn.textContent='发送登录链接';
+    if(e.message&&e.message.indexOf('Invalid login')>=0){
+      try{
+        var{error:signUpErr}=await _sb.auth.signUp({email:email,password:pwd});
+        if(signUpErr)throw signUpErr;
+        errEl.style.color='var(--green,#006B3F)';errEl.textContent='✅ 注册成功！已自动登录';
+        btn.disabled=false;btn.textContent='登录 / 注册';
+        return;
+      }catch(e2){errEl.style.color='var(--red2,#FF3B30)';errEl.textContent=e2.message||'注册失败';btn.disabled=false;btn.textContent='登录 / 注册';return;}
+    }
+    errEl.style.color='var(--red2,#FF3B30)';errEl.textContent=e.message||'登录失败';
   }
+  btn.disabled=false;btn.textContent='登录 / 注册';
 }
 
 async function _loadFromCloud(){
@@ -299,7 +308,7 @@ async function _doLogout(){
   document.getElementById('login-email').value='';
   document.getElementById('login-error').textContent='';
   document.getElementById('login-btn').disabled=false;
-  document.getElementById('login-btn').textContent='发送登录链接';
+  document.getElementById('login-btn').textContent='登录 / 注册';
 }
 
 
