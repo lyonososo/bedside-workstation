@@ -332,7 +332,7 @@ var data={logs:{},profile:{name:'',height:0,weight:0,hospital:'',dept:''},favori
 
 function today(){return new Date().toISOString().slice(0,10);}
 function loadData(){try{var s=localStorage.getItem('gdhtcm_data');if(s){var d=JSON.parse(s);data.logs=d.logs||{};data.profile=Object.assign(data.profile,d.profile||{});data.favorites=d.favorites||[];data.contacts=d.contacts||data.contacts;data.notes=d.notes||[];data.handover=d.handover||'';data.achievements=d.achievements||{};}}catch(e){}}
-function saveData(){try{localStorage.setItem('gdhtcm_data',JSON.stringify(data));}catch(e){}if(_currentUser)_queueSync();}
+function saveData(){try{localStorage.setItem('gdhtcm_data',JSON.stringify(data));}catch(e){}}
 function getLog(day){if(!data.logs[day])data.logs[day]={shift:'rest',count:0,taxMode:false,patients:[],mealBreak:null,_timerStart:null,_timerPaused:false,_timerElapsed:0};return data.logs[day];}
 function applyTheme(){if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}
 function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('theme',d?'dark':'light');render();}
