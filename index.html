@@ -801,11 +801,11 @@ openModal(h,true);
 }
 
 function renderMe(){
-var p=data.profile;var displayName=p.name||'床边技师';var displayHosp=(p.hospital||p.dept)?(p.hospital+(p.dept?' · '+p.dept:'')):'点击设置个人信息';
+var p=data.profile;var displayName=p.name||'床边技师';var campus=CAMPUSES.find(function(x){return x.id===state.campus;});var displayHosp=campus?campus.name:'点击设置个人信息';
 var bmi=p.height&&p.weight?((p.weight/Math.pow(p.height/100,2)).toFixed(1)):0;
 var bmiText=bmi?('BMI '+bmi+' ('+(bmi<18.5?'偏瘦':bmi<24?'正常':bmi<28?'偏胖':'肥胖')+')'):'';
 var h='<div class="view-header"><div class="view-title">我的</div></div>';
-h+='<div class="card" style="text-align:center;padding:24px;cursor:pointer" onclick="showEditProfile()"><div style="font-size:48px;margin-bottom:8px">👨‍⚕️</div><div style="font-size:20px;font-weight:900">'+displayName+'</div><div style="font-size:13px;color:var(--text2);margin-top:2px">'+displayHosp+'</div>';
+h+='<div class="card" style="text-align:center;padding:24px;cursor:pointer" onclick="showEditProfile()"><div style="font-size:48px;margin-bottom:8px">👨‍⚕️</div><div style="font-size:20px;font-weight:900">'+displayName+'</div><div style="font-size:13px;color:var(--text2);margin-top:2px">'+displayHosp+' · 放射科</div>';
 if(bmiText)h+='<div style="font-size:12px;color:var(--text3);margin-top:4px">'+p.height+'cm · '+p.weight+'kg · '+bmiText+'</div>';
 h+='<div style="font-size:11px;color:var(--green);margin-top:6px">点击编辑 ›</div></div>';
 
@@ -861,8 +861,9 @@ function showEditProfile(){
 var p=data.profile;
 var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">✏️ 编辑个人信息</div>';
 h+='<div class="form-row"><div class="form-label">昵称</div><input id="ep-name" class="form-input" placeholder="你的名字" value="'+(p.name||'')+'"></div>';
-h+='<div class="form-row"><div class="form-label">医院</div><input id="ep-hospital" class="form-input" placeholder="如 广东省中医院" value="'+(p.hospital||'')+'"></div>';
-h+='<div class="form-row"><div class="form-label">科室</div><input id="ep-dept" class="form-input" placeholder="如 放射科" value="'+(p.dept||'')+'"></div>';
+h+='<div class="form-row"><div class="form-label">院区</div><select id="ep-campus" class="form-select">';
+CAMPUSES.forEach(function(c){h+='<option value="'+c.id+'"'+(state.campus===c.id?' selected':'')+'>'+c.name+'</option>';});
+h+='</select></div>';
 h+='<div class="form-row"><div class="form-label">身高 (cm)</div><input id="ep-height" class="form-input" type="number" placeholder="如 170" value="'+(p.height||'')+'"></div>';
 h+='<div class="form-row"><div class="form-label">体重 (kg)</div><input id="ep-weight" class="form-input" type="number" placeholder="如 65" value="'+(p.weight||'')+'"></div>';
 h+='<div style="padding:10px;background:var(--green3);border-radius:var(--radius3);font-size:12px;color:var(--green);margin-bottom:12px">💡 身高体重用于精确计算卡路里消耗，填写后体验更好</div>';
@@ -872,10 +873,10 @@ openModal(h);
 }
 function saveEditProfile(){
 data.profile.name=document.getElementById('ep-name').value.trim();
-data.profile.hospital=document.getElementById('ep-hospital').value.trim();
-data.profile.dept=document.getElementById('ep-dept').value.trim();
 data.profile.height=parseInt(document.getElementById('ep-height').value)||0;
 data.profile.weight=parseInt(document.getElementById('ep-weight').value)||0;
+var newCampus=document.getElementById('ep-campus').value;
+if(newCampus!==state.campus){switchCampus(newCampus);}
 saveData();closeModal();render();toast('✅ 已保存');
 }
 
@@ -883,8 +884,9 @@ saveData();closeModal();render();toast('✅ 已保存');
 function showOnboarding(){
 var h='<div style="text-align:center;padding:20px 0"><div style="font-size:48px">🏥</div><div style="font-size:22px;font-weight:900;margin-top:8px">欢迎使用个人床边工作量记录工作站</div><div style="font-size:14px;color:var(--text2);margin-top:6px">一个专为床边技师打造的工作助手</div></div>';
 h+='<div class="form-row"><div class="form-label">你的名字</div><input id="ob-name" class="form-input" placeholder="怎么称呼你？"></div>';
-h+='<div class="form-row"><div class="form-label">医院</div><input id="ob-hospital" class="form-input" placeholder="如 广东省中医院"></div>';
-h+='<div class="form-row"><div class="form-label">科室</div><input id="ob-dept" class="form-input" placeholder="如 放射科"></div>';
+h+='<div class="form-row"><div class="form-label">院区</div><select id="ob-campus" class="form-select">';
+CAMPUSES.forEach(function(c){h+='<option value="'+c.id+'"'+(state.campus===c.id?' selected':'')+'>'+c.name+'</option>';});
+h+='</select></div>';
 h+='<div class="form-row"><div class="form-label">身高 (cm)</div><input id="ob-height" class="form-input" type="number" placeholder="选填，用于卡路里计算"></div>';
 h+='<div class="form-row"><div class="form-label">体重 (kg)</div><input id="ob-weight" class="form-input" type="number" placeholder="选填，用于卡路里计算"></div>';
 h+='<button class="btn btn-green btn-full" onclick="finishOnboarding()">开始使用</button>';
@@ -892,10 +894,10 @@ openModal(h,true);
 }
 function finishOnboarding(){
 data.profile.name=document.getElementById('ob-name').value.trim()||'床边技师';
-data.profile.hospital=document.getElementById('ob-hospital').value.trim();
-data.profile.dept=document.getElementById('ob-dept').value.trim();
 data.profile.height=parseInt(document.getElementById('ob-height').value)||0;
 data.profile.weight=parseInt(document.getElementById('ob-weight').value)||0;
+var newCampus=document.getElementById('ob-campus').value;
+if(newCampus!==state.campus){switchCampus(newCampus);}
 data._onboarded=true;saveData();closeModal();render();toast('🎉 设置完成！');
 }
 
