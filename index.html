@@ -172,7 +172,7 @@ var CAMPUSES=[
   {id:'daxuecheng',name:'大学城院区',lat:23.0556,lon:113.3861},
   {id:'fangcun',name:'芳村院区',lat:23.0833,lon:113.2333}
 ];
-var state={tab:'work',calMonth:'',addMode:'single',campus:'dade',weather:null};
+var state={tab:'work',calMonth:'',addMode:'single',campus:'dade',weather:null,showTaxIncome:false};
 var data={logs:{},profile:{name:'',height:0,weight:0,hospital:'',dept:''},favorites:[],contacts:[{name:'ICU',phone:'',icon:'🏥'},{name:'急诊科',phone:'',icon:'🚑'},{name:'3F 外科',phone:'',icon:'🔪'}],notes:[],handover:'',achievements:{}};
 
 function today(){return new Date().toISOString().slice(0,10);}
@@ -592,6 +592,7 @@ if(state.tab==='work')startTimerTick();
 }
 
 function switchTab(t){state.tab=t;render();}
+function toggleTaxIncome(){state.showTaxIncome=!state.showTaxIncome;try{localStorage.setItem('gdhtcm_tax',state.showTaxIncome?'1':'0');}catch(e){}render();}
 
 function renderWork(){
 var td=today();var log=getLog(td);var pts=log.patients||[];
@@ -609,7 +610,10 @@ h+=renderWeatherBar();
 // Stats grid
 h+='<div class="stat-grid animate-in"><div class="stat-item"><div class="stat-value" style="color:var(--green)">'+(log.count||0)+'</div><div class="stat-label">今日床边</div></div>';
 h+='<div class="stat-item"><div class="stat-value" style="color:var(--orange)">'+mTotal+'</div><div class="stat-label">本月累计</div></div>';
-h+='<div class="stat-item"><div class="stat-value" style="color:var(--blue)">¥'+mIncome+'</div><div class="stat-label">本月收入</div></div>';
+var mTaxIncome=0;mLogs.forEach(function(l){mTaxIncome+=(l.count||0)*16;});
+var incomeVal=state.showTaxIncome?mTaxIncome:mIncome;
+var incomeLabel=state.showTaxIncome?'本月税后收入':'本月收入';
+h+='<div class="stat-item" style="cursor:pointer" onclick="toggleTaxIncome()"><div class="stat-value" style="color:var(--blue)">¥'+incomeVal+'</div><div class="stat-label">'+incomeLabel+' <span style="font-size:10px;color:var(--text3)">点击切换</span></div></div>';
 h+='<div class="stat-item"><div class="stat-value" style="color:var(--purple)">'+(mLogs.length?Math.round(mTotal/mLogs.length):0)+'</div><div class="stat-label">日均床边</div></div></div>';
 
 // Rating card
@@ -656,7 +660,7 @@ if(log.mealBreak&&!log.mealBreak.end){
 if(data.handover){h+='<div class="card animate-in" style="padding:12px 14px;border-left:3px solid var(--orange)"><div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:4px">📝 交接备忘</div><div style="font-size:13px;color:var(--text2)">'+data.handover+'</div></div>';}
 
 // Patient list
-h+='<div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px"><div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:6px">📋 今日拍片清单</div><button class="btn btn-green btn-sm" onclick="showAddPt()">+ 添加</button></div>';
+h+='<div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px"><div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:6px">📋 今日拍片清单</div><button class="btn btn-green" style="padding:8px 20px;font-size:14px;font-weight:800;border-radius:10px" onclick="showAddPt()">+ 添加任务</button></div>';
 if(!pts.length){h+='<div class="card"><div class="empty-state"><div class="emoji">📋</div><div class="text">暂无拍片任务</div></div></div>';}
 else{
   // Group by floor
@@ -841,8 +845,8 @@ return h;
 function showDevLetter(){
 var h='<div style="padding:20px 0"><div style="text-align:center;margin-bottom:20px"><div style="font-size:40px">💌</div><div style="font-size:20px;font-weight:900;margin-top:8px">开发者的一封信</div></div>';
 h+='<div style="font-size:15px;line-height:2;color:var(--text)">';
-h+='<p>做这个 App 的原因很简单——每天推着移动DR在病房之间跑来跑去，拍完一个又一个，回头想想今天到底做了多少，脑子里一片空白。记不住，也说不清。</p>';
-h+='<p>我试过纸笔，试过备忘录，都不顺手。要么太麻烦，要么记了就忘。所以我自己写了一个——一个专门给床边技师用的工作助手。</p>';
+h+='<p>做这个 App 的原因很简单，每天推着移动DR在病房之间跑来跑去，拍完一个又一个，回头想想今天到底做了多少，脑子里一片空白。记不住，也说不清。</p>';
+h+='<p>我试过纸笔，试过备忘录，都不顺手。要么太麻烦，要么记了就忘。所以我自己写了这个专门给床边技师用的工作助手。</p>';
 h+='<p>没有团队，没有融资，每个功能都来自真实的工作场景后想到的，批量录入是因为ICU经常一口气来十几个，卡路里计算是因为想知道自己每天到底消耗了多少体力，成就系统是因为……我觉得这份工作值得被记录。</p>';
 h+='<p>床边可能是放射科最累的活。推着上百公斤的机器爬上爬下，弯腰摆位，有时候还要面对不配合的患者、焦急的家属、催促的护士。没有人会特意感谢你拍了一张好片子，但每个人都离不开你。</p>';
 h+='<p>所以我想让这个 App 告诉你：<strong>你的每一床，都算数。</strong></p>';
@@ -1007,6 +1011,7 @@ saveData();
   state.calMonth=today().slice(0,7);
   state.addMode='single';
   try{var savedCampus=localStorage.getItem('gdhtcm_campus');if(savedCampus)state.campus=savedCampus;}catch(e){}
+  try{state.showTaxIncome=localStorage.getItem('gdhtcm_tax')==='1';}catch(e){}
   setTimeout(function(){
     document.getElementById('splash').classList.add('hide');
     document.getElementById('app').classList.add('show');
