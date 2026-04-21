@@ -185,19 +185,17 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
 <div class="toast" id="toast"></div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
-// ===== CLOUD SYNC (no login, silent) =====
+// ===== CLOUD SYNC (no login, no SDK, pure fetch) =====
 var _SB_URL='https://uzcijftcckvyfirlhtci.supabase.co';
 var _SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6Y2lqZnRjY2t2eWZpcmxodGNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njc5MTg3NCwiZXhwIjoyMDkyMzY3ODc0fQ.63bb31Bzm74EPJMQeeXKvtrezumCNotKb0G_7KFw8qU';
-var _sb=null;
 var _currentUser={id:'07da79c4-76bb-496a-9307-2c18b0e6112d',name:'技师'};
 var _syncTimer=null;
 var _isSyncing=false;
+var _sbHeaders={'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'};
 
 function _initSB(){
-  try{_sb=window.supabase.createClient(_SB_URL,_SB_KEY);}catch(e){console.warn('SB init failed:',e);}
   var saved=localStorage.getItem('gdhtcm_user');
   if(saved){try{var u=JSON.parse(saved);if(u.name)_currentUser.name=u.name;}catch(e){}}
   _enterApp();
@@ -211,11 +209,12 @@ function _enterApp(){
 }
 function _queueSync(){clearTimeout(_syncTimer);_syncTimer=setTimeout(function(){_syncToCloud();},2000);}
 async function _loadFromCloud(){
-  if(!_sb||!_currentUser)return;
   try{
-    var logsRes=await _sb.from('daily_logs').select('*').eq('user_id',_currentUser.id).order('date');
-    if(logsRes.data){
-      logsRes.data.forEach(function(log){
+    var res=await fetch(_SB_URL+'/rest/v1/daily_logs?user_id=eq.'+_currentUser.id+'&select=*&order=date.asc',{headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY}});
+    if(!res.ok)throw new Error(res.status);
+    var logs=await res.json();
+    if(logs&&logs.length){
+      logs.forEach(function(log){
         var existing=data.logs[log.date];
         if(!existing){
           data.logs[log.date]={shift:log.shift||'rest',count:log.count||0,taxMode:!!log.tax_mode,patients:[],mealBreak:log.meal_break,_timerStart:null,_timerPaused:false,_timerElapsed:0};
@@ -232,23 +231,22 @@ async function _loadFromCloud(){
   }catch(e){console.warn('Cloud load error:',e);_updateSyncDot('error');}
 }
 async function _syncToCloud(){
-  if(!_sb||!_currentUser||_isSyncing)return;
+  if(!_currentUser||_isSyncing)return;
   _isSyncing=true;_updateSyncDot('syncing');
   try{
     var dates=Object.keys(data.logs);
     for(var i=0;i<dates.length;i++){
       var dk=dates[i],log=data.logs[dk];
-      await _sb.from('daily_logs').upsert({
-        user_id:_currentUser.id,date:dk,shift:log.shift,count:log.count||0,
-        tax_mode:!!log.taxMode,meal_break:log.mealBreak||null
-      },{onConflict:'user_id,date'});
+      await fetch(_SB_URL+'/rest/v1/daily_logs',{
+        method:'POST',headers:_sbHeaders,
+        body:JSON.stringify({user_id:_currentUser.id,date:dk,shift:log.shift,count:log.count||0,tax_mode:!!log.taxMode,meal_break:log.mealBreak||null})
+      });
     }
-    // Also sync user name to profiles
     if(_currentUser.name){
-      await _sb.from('profiles').upsert({
-        id:_currentUser.id,name:_currentUser.name,title:'初级技师',
-        avatar_type:'emoji',avatar_emoji:'\ud83d\udc68\u200d\u2695\ufe0f'
-      },{onConflict:'id'});
+      await fetch(_SB_URL+'/rest/v1/profiles',{
+        method:'POST',headers:_sbHeaders,
+        body:JSON.stringify({id:_currentUser.id,name:_currentUser.name,title:'初级技师',avatar_type:'emoji',avatar_emoji:'\ud83d\udc68\u200d\u2695\ufe0f'})
+      });
     }
     _updateSyncDot('ok');
   }catch(e){console.warn('Sync error:',e);_updateSyncDot('error');}
