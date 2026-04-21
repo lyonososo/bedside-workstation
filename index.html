@@ -184,11 +184,11 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
   <div class="login-title">个人床边工作站</div>
   <div class="login-sub">广东省中医院 · 放射科<br>请登录以同步数据到云端</div>
   <div class="login-form">
-    <input class="login-input" id="login-email" type="email" placeholder="邮箱" autocomplete="email">
-    <input class="login-input" id="login-pwd" type="password" placeholder="密码（至少6位）" autocomplete="current-password">
+    <input class="login-input" id="login-name" type="text" placeholder="你的姓名" autocomplete="name">
+    <input class="login-input" id="login-pwd" type="password" placeholder="密码（至少4位）" autocomplete="current-password">
     <button class="login-btn" id="login-btn" onclick="handleLogin()">登录 / 注册</button>
     <div class="login-error" id="login-error"></div>
-    <div class="login-hint">首次使用自动注册，之后用相同邮箱密码登录<br>数据自动同步到云端</div>
+    <div class="login-hint">首次输入姓名+密码自动注册<br>之后用相同姓名+密码登录，数据自动同步</div>
   </div>
 </div>
 <div id="splash"><div class="logo">🏥</div><h1>个人床边工作量记录工作站</h1><p>v3.0 Cloud · Lyon <span id="sync-dot" class="sync-dot ok"></span></p></div>
@@ -205,62 +205,55 @@ var _syncTimer=null;
 var _isSyncing=false;
 
 function _initSB(){
-  try{_sb=window.supabase.createClient(_SB_URL,_SB_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});}catch(e){console.warn('Supabase init failed:',e);}
+  try{_sb=window.supabase.createClient(_SB_URL,_SB_KEY);}catch(e){console.warn('Supabase init failed:',e);}
 }
 
-async function _checkSession(){
-  if(!_sb)return false;
-  try{var r=await _sb.auth.getSession();if(r.data&&r.data.session&&r.data.session.user){_currentUser=r.data.session.user;return true;}}catch(e){}
-  return false;
-}
+function _hashPwd(pwd){var h=0;for(var i=0;i<pwd.length;i++){h=((h<<5)-h)+pwd.charCodeAt(i);h|=0;}return 'u'+Math.abs(h).toString(36);}
 
 async function handleLogin(){
-  var email=document.getElementById('login-email').value.trim();
+  var name=document.getElementById('login-name').value.trim();
   var pwd=document.getElementById('login-pwd').value;
   var errEl=document.getElementById('login-error');
   var btn=document.getElementById('login-btn');
-  if(!email||!email.includes('@')){errEl.textContent='请输入有效邮箱';return;}
-  if(!pwd||pwd.length<6){errEl.textContent='密码至少6位';return;}
+  if(!name){errEl.textContent='请输入姓名';return;}
+  if(!pwd||pwd.length<4){errEl.textContent='密码至少4位';return;}
   errEl.textContent='';btn.disabled=true;btn.textContent='登录中...';
   try{
-    var{data,error}=await _sb.auth.signInWithPassword({email:email,password:pwd});
-    if(error)throw error;
-    _currentUser=data.user;
-    document.getElementById('login-page').classList.add('hide');
-    document.getElementById('app').classList.add('show');
-    render();
-    if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
-    fetchWeather();
-    _loadFromCloud().then(function(){render();});
+    var hash=_hashPwd(pwd);
+    var{data:existing,error:qErr}=await _sb.from('profiles').select('*').eq('name',name).eq('pwd_hash',hash).maybeSingle();
+    if(qErr)throw qErr;
+    if(existing){
+      _currentUser={id:existing.id,name:existing.name};
+      data.profile.name=existing.name||data.profile.name;
+      if(existing.height)data.profile.height=existing.height;
+      if(existing.weight)data.profile.weight=existing.weight;
+      if(existing.hospital)data.profile.hospital=existing.hospital;
+      if(existing.dept)data.profile.dept=existing.dept;
+      saveData();
+      _enterApp();
+    }else{
+      var newId=name.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+Date.now();
+      var{error:insErr}=await _sb.from('profiles').insert({id:newId,name:name,pwd_hash:hash,title:'初级技师'});
+      if(insErr)throw insErr;
+      _currentUser={id:newId,name:name};
+      data.profile.name=name;
+      saveData();
+      _enterApp();
+    }
   }catch(e){
-    var msg=(e.message||'').toLowerCase();
-    if(msg.indexOf('invalid login')>=0||msg.indexOf('invalid credentials')>=0||msg.indexOf('not found')>=0){
-      try{
-        var{data:sData,error:signUpErr}=await _sb.auth.signUp({email:email,password:pwd});
-        if(signUpErr)throw signUpErr;
-        try{
-          var{data:lData,error:loginErr}=await _sb.auth.signInWithPassword({email:email,password:pwd});
-          if(loginErr)throw loginErr;
-          _currentUser=lData.user;
-          document.getElementById('login-page').classList.add('hide');
-          document.getElementById('app').classList.add('show');
-          render();
-          if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
-          fetchWeather();
-          _loadFromCloud().then(function(){render();});
-        }catch(e3){
-          errEl.style.color='var(--green,#006B3F)';errEl.textContent='✅ 注册成功！请重新登录';
-        }
-      }catch(e2){
-        var msg2=(e2.message||'').toLowerCase();
-        if(msg2.indexOf('rate limit')>=0||msg2.indexOf('too many')>=0){errEl.textContent='操作太频繁，请等1分钟再试';}
-        else if(msg2.indexOf('already registered')>=0||msg2.indexOf('already been')>=0){errEl.textContent='该邮箱已注册，密码不对';}
-        else{errEl.textContent='注册失败';}
-      }
-    }else if(msg.indexOf('rate limit')>=0||msg.indexOf('too many')>=0){errEl.textContent='操作太频繁，请等1分钟再试';}
-    else{errEl.textContent='登录失败，请检查邮箱和密码';}
+    errEl.textContent='登录失败，请重试';
+    console.error(e);
   }
   btn.disabled=false;btn.textContent='登录 / 注册';
+}
+
+function _enterApp(){localStorage.setItem('gdhtcm_user',JSON.stringify(_currentUser));
+  document.getElementById('login-page').classList.add('hide');
+  document.getElementById('app').classList.add('show');
+  render();
+  if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
+  fetchWeather();
+  _loadFromCloud().then(function(){render();});
 }
 
 async function _loadFromCloud(){
@@ -280,8 +273,14 @@ async function _loadFromCloud(){
     }
     if(logsRes.data){
       logsRes.data.forEach(function(log){
-        if(!data.logs[log.date]||log.updated_at){
+        var existing=data.logs[log.date];
+        if(!existing){
           data.logs[log.date]={shift:log.shift||'rest',count:log.count||0,taxMode:!!log.tax_mode,patients:[],mealBreak:log.meal_break,_timerStart:null,_timerPaused:false,_timerElapsed:0};
+        }else{
+          existing.shift=log.shift||existing.shift;
+          existing.count=log.count||existing.count;
+          existing.taxMode=!!log.tax_mode;
+          if(log.meal_break)existing.mealBreak=log.meal_break;
         }
       });
     }
@@ -297,7 +296,8 @@ async function _syncToCloud(){
   _isSyncing=true;_updateSyncDot('syncing');
   try{
     await _sb.from('profiles').upsert({
-      id:_currentUser.id,name:data.profile.name||'',height:data.profile.height||0,weight:data.profile.weight||0,
+      id:_currentUser.id,name:data.profile.name||'',pwd_hash:_hashPwd(document.getElementById('login-pwd')?document.getElementById('login-pwd').value:''),
+      height:data.profile.height||0,weight:data.profile.weight||0,
       hospital:data.profile.hospital||'',dept:data.profile.dept||''
     },{onConflict:'id'});
     var dates=Object.keys(data.logs);
@@ -323,7 +323,7 @@ async function handleLogout(){
   openModal('<div style="text-align:center;padding:16px 0"><div style="font-size:44px;margin-bottom:10px">👋</div><div style="font-size:17px;font-weight:800;margin-bottom:6px">确认退出登录？</div><div style="font-size:13px;color:var(--text2,#8E8E93);margin-bottom:16px">数据已保存在云端，下次登录自动同步</div><div style="display:flex;gap:8px"><button class="btn btn-outline" style="flex:1" onclick="closeModal()">取消</button><button class="btn btn-danger" style="flex:1" onclick="_doLogout()">退出</button></div></div>');
 }
 async function _doLogout(){
-  try{await _sb.auth.signOut();}catch(e){}
+  try{await _sb.// auth.signOut();}catch(e){}
   _currentUser=null;
   closeModal();
   document.getElementById('login-page').classList.remove('hide');
@@ -1197,17 +1197,7 @@ saveData();
       },2500);
     }
   });
-  _sb.auth.onAuthStateChange(function(event,session){
-    if(event==='SIGNED_IN'&&session&&session.user){
-      _currentUser=session.user;
-      document.getElementById('login-page').classList.add('hide');
-      document.getElementById('app').classList.add('show');
-      render();
-      if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
-      fetchWeather();
-      _loadFromCloud().then(function(){render();});
-    }
-  });
+  // Auth handled by simple name+password login
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
   document.addEventListener('visibilitychange',function(){if(document.hidden){saveData();checkAchievements();}});
   setInterval(checkAchievements,60000);
