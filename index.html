@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="个人床边工作量记录工作站">
+<meta name="theme-color" content="#006B3F">
+<title>个人床边工作量记录工作站</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--green:#006B3F;--green2:#00875A;--green3:rgba(0,107,63,.08);--red:#C41230;--red2:#FF3B30;--orange:#FF9500;--blue:#007AFF;--purple:#AF52DE;--teal:#5AC8FA;--pink:#FF2D55;--bg:#F2F2F7;--card:rgba(255,255,255,.78);--card2:rgba(255,255,255,.5);--card-solid:#FFFFFF;--input:rgba(242,242,247,.8);--text:#1C1C1E;--text2:#8E8E93;--text3:#AEAEB2;--border:rgba(0,0,0,.06);--shadow:0 2px 16px rgba(0,0,0,.06);--shadow2:0 8px 32px rgba(0,0,0,.1);--radius:20px;--radius2:14px;--radius3:10px;--safe-top:env(safe-area-inset-top,20px);--safe-bottom:env(safe-area-inset-bottom,0px);--glass:rgba(255,255,255,.65);--glass-border:rgba(255,255,255,.3);--blur:blur(20px);--tab-h:56px}
+.dark{--bg:#000000;--card:rgba(28,28,30,.78);--card2:rgba(44,44,46,.5);--card-solid:#1C1C1E;--input:rgba(44,44,46,.8);--text:#FFFFFF;--text2:#98989F;--text3:#48484A;--border:rgba(255,255,255,.08);--shadow:0 2px 16px rgba(0,0,0,.3);--shadow2:0 8px 32px rgba(0,0,0,.4);--glass:rgba(28,28,30,.65);--glass-border:rgba(255,255,255,.08)}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;transition:background .3s,color .3s}
+body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
+.dark body{background:linear-gradient(160deg,#0a1a0f 0%,#0d1f12 30%,#1a1a0a 100%)}
+#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#006B3F,#00875A);transition:opacity .6s,transform .6s}
+#splash.hide{opacity:0;transform:scale(1.1);pointer-events:none}
+#splash .logo{font-size:48px;margin-bottom:16px;animation:bounce 1s ease infinite}
+#splash h1{color:#fff;font-size:22px;font-weight:800;letter-spacing:1px}
+#splash p{color:rgba(255,255,255,.7);font-size:13px;margin-top:6px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+#app{height:100%;display:flex;flex-direction:column;opacity:0;transform:translateY(20px);transition:opacity .5s,transform .5s}
+#app.show{opacity:1;transform:translateY(0)}
+.view-header{padding:16px 20px 8px;padding-top:calc(var(--safe-top) + 16px)}
+.view-title{font-size:28px;font-weight:900;letter-spacing:-.5px}
+.view-subtitle{font-size:13px;color:var(--text2);margin-top:2px}
+.view-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 100px}
+.view-content::-webkit-scrollbar{display:none}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;height:calc(var(--tab-h) + var(--safe-bottom));padding-bottom:var(--safe-bottom);background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-top:1px solid var(--glass-border);display:flex;z-index:100}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--text3);cursor:pointer;transition:color .2s;position:relative}
+.tab-item.active{color:var(--green)}
+.tab-item .tab-icon{font-size:22px;transition:transform .2s}
+.tab-item.active .tab-icon{transform:scale(1.15)}
+.tab-item.active::before{content:'';position:absolute;top:-1px;left:25%;right:25%;height:2px;background:var(--green);border-radius:2px}
+.card{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s}
+.card:active{transform:scale(.98)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-item{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--radius2);padding:14px;text-align:center;box-shadow:var(--shadow)}
+.stat-value{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums}
+.stat-label{font-size:11px;color:var(--text2);margin-top:2px;font-weight:600}
+.rating-card{background:linear-gradient(135deg,var(--green),var(--green2));border-radius:var(--radius);padding:18px;color:#fff;text-align:center;margin-bottom:12px;box-shadow:var(--shadow2);position:relative;overflow:hidden}
+.rating-card::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.rating-emoji{font-size:36px;margin-bottom:4px}
+.rating-title{font-size:18px;font-weight:800}
+.rating-count{font-size:12px;opacity:.85;margin-top:4px}
+.rating-progress{height:4px;background:rgba(255,255,255,.2);border-radius:4px;margin-top:10px;overflow:hidden}
+.rating-bar{height:100%;background:#fff;border-radius:4px;transition:width .6s ease}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border-radius:var(--radius3);font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all .15s;gap:6px}
+.btn:active{transform:scale(.95)}
+.btn-green{background:var(--green);color:#fff}
+.btn-outline{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.btn-red{background:var(--red);color:#fff}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-full{width:100%}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.section-title{font-size:15px;font-weight:800;margin:16px 0 8px;display:flex;align-items:center;gap:6px}
+.form-row{margin-bottom:10px}
+.form-label{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px}
+.form-input,.form-select,.form-textarea{width:100%;padding:10px 14px;border-radius:var(--radius3);border:1px solid var(--border);background:var(--input);color:var(--text);font-size:15px;font-weight:500;outline:none;transition:border-color .2s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--green)}
+.form-textarea{min-height:60px;resize:vertical;font-family:inherit}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:auto}
+.modal-sheet{width:100%;max-width:500px;max-height:85vh;background:var(--card-solid);border-radius:24px 24px 0 0;padding:20px;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-overlay.open .modal-sheet{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(--text3);border-radius:4px;margin:0 auto 16px}
+.modal-center .modal-sheet{border-radius:24px;margin:20px;max-height:80vh;transform:translateY(20px) scale(.95)}
+.modal-center.open .modal-sheet{transform:translateY(0) scale(1)}
+.progress-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.progress-ring svg{transform:rotate(-90deg)}
+.progress-ring .ring-bg{stroke:var(--border)}
+.progress-ring .ring-fg{stroke:var(--green);transition:stroke-dashoffset .6s ease}
+.progress-ring .ring-text{position:absolute;font-size:14px;font-weight:900;color:var(--green)}
+.calorie-card{background:linear-gradient(135deg,#FF6B35,#FF9500);border-radius:var(--radius);padding:16px;color:#fff;margin-bottom:12px;box-shadow:var(--shadow2)}
+.calorie-value{font-size:32px;font-weight:900}
+.calorie-unit{font-size:13px;opacity:.8}
+.calorie-equiv{font-size:12px;opacity:.75;margin-top:4px}
+.check-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius3);margin-bottom:6px;background:var(--card2);transition:all .2s;position:relative;overflow:hidden}
+.check-item.done{opacity:.5}
+.check-item.done .check-name{text-decoration:line-through}
+.check-item.urgent{border-left:3px solid var(--red)}
+.check-item.urgent .check-name::before{content:'🔴 ';font-size:10px}
+.check-name{flex:1;font-size:14px;font-weight:600}
+.check-tag{font-size:10px;padding:2px 6px;border-radius:6px;font-weight:700}
+.check-actions{display:flex;gap:4px}
+.check-btn{width:28px;height:28px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;background:var(--card2);color:var(--text2);transition:all .15s}
+.check-btn:active{transform:scale(.85)}
+.check-btn.btn-done{background:var(--green);color:#fff}
+.floor-group{margin-bottom:12px}
+.floor-header{font-size:13px;font-weight:800;color:var(--text2);padding:6px 4px;display:flex;align-items:center;gap:6px}
+.floor-header .floor-count{background:var(--green3);color:var(--green);padding:1px 8px;border-radius:10px;font-size:11px}
+.meal-banner{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#FF9500,#FF6B00);border-radius:var(--radius);padding:14px;color:#fff;margin-bottom:12px}
+.meal-banner .info{flex:1}
+.meal-banner .title{font-weight:800;font-size:15px}
+.meal-banner .time{font-size:12px;opacity:.8}
+.btn-end{padding:8px 16px;border-radius:10px;background:rgba(255,255,255,.2);color:#fff;border:none;font-weight:700;font-size:13px;cursor:pointer}
+.empty-state{text-align:center;padding:32px 16px}
+.empty-state .emoji{font-size:40px;margin-bottom:8px}
+.empty-state .text{font-size:14px;color:var(--text2)}
+.tag{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700}
+.tag-green{background:var(--green3);color:var(--green)}
+.tag-orange{background:rgba(255,149,0,.12);color:var(--orange)}
+.tag-red{background:rgba(196,18,48,.1);color:var(--red)}
+.tag-blue{background:rgba(0,122,255,.1);color:var(--blue)}
+.tag-purple{background:rgba(175,82,222,.1);color:var(--purple)}
+.achieve-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.achieve-card{background:var(--card);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--radius2);padding:14px 8px;text-align:center;box-shadow:var(--shadow);transition:transform .2s}
+.achieve-card.locked{opacity:.4;filter:grayscale(1)}
+.achieve-card .ach-icon{font-size:28px;margin-bottom:4px}
+.achieve-card .ach-name{font-size:11px;font-weight:700}
+.achieve-card .ach-desc{font-size:10px;color:var(--text2);margin-top:2px}
+.achieve-card .ach-date{font-size:9px;color:var(--text3);margin-top:2px}
+.achieve-title-card{background:linear-gradient(135deg,#FFD700,#FFA000);border-radius:var(--radius);padding:20px;color:#fff;text-align:center;margin-bottom:16px;box-shadow:var(--shadow2)}
+.achieve-title-card .ach-icon{font-size:48px}
+.achieve-title-card .ach-name{font-size:20px;font-weight:900;margin-top:4px}
+.achieve-title-card .ach-progress{font-size:12px;opacity:.8;margin-top:4px}
+.toast{position:fixed;top:calc(var(--safe-top) + 12px);left:50%;transform:translateX(-50%) translateY(-100px);background:var(--card-solid);color:var(--text);padding:10px 20px;border-radius:var(--radius3);font-size:14px;font-weight:600;box-shadow:var(--shadow2);z-index:999;transition:transform .3s cubic-bezier(.32,.72,0,1);white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px}
+.cal-hd{text-align:center;font-size:11px;font-weight:700;color:var(--text2);padding:6px 0}
+.cal-day{text-align:center;padding:8px 4px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.cal-day:active{transform:scale(.9)}
+.cal-day.today{background:var(--green);color:#fff}
+.cal-day.rest{color:var(--text3)}
+.cal-day.work{background:var(--green3);color:var(--green)}
+.cal-day.selected{box-shadow:0 0 0 2px var(--green)}
+.contact-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card2);border-radius:var(--radius3);margin-bottom:8px}
+.contact-item .c-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.contact-item .c-name{font-size:14px;font-weight:700}
+.contact-item .c-phone{font-size:12px;color:var(--text2)}
+.note-item{padding:12px;background:var(--card2);border-radius:var(--radius3);margin-bottom:8px;font-size:13px;line-height:1.5}
+.note-item .note-time{font-size:11px;color:var(--text3);margin-top:4px}
+.report-card{background:var(--card);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.report-card h3{font-size:14px;font-weight:800;margin-bottom:10px}
+.report-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.report-row:last-child{border:none}
+.report-row .label{color:var(--text2)}
+.report-row .value{font-weight:700}
+.quick-input{display:flex;gap:8px;margin-bottom:12px}
+.quick-input input{flex:1}
+.batch-area{margin-bottom:12px}
+.batch-area textarea{width:100%;min-height:100px;padding:12px;border-radius:var(--radius3);border:1px solid var(--border);background:var(--input);color:var(--text);font-size:14px;font-family:inherit;resize:vertical}
+.batch-hint{font-size:11px;color:var(--text2);margin-top:4px}
+.marker-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.marker-chip{padding:4px 10px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--card2);cursor:pointer;transition:all .15s}
+.marker-chip.selected{border-color:var(--green);background:var(--green3);color:var(--green)}
+.quality-stars{display:flex;gap:4px}
+.quality-star{font-size:24px;cursor:pointer;transition:transform .15s}
+.quality-star:active{transform:scale(1.3)}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.animate-in{animation:fadeInUp .3s ease both}
+.animate-in:nth-child(2){animation-delay:.05s}
+.animate-in:nth-child(3){animation-delay:.1s}
+.animate-in:nth-child(4){animation-delay:.15s}
+.animate-in:nth-child(5){animation-delay:.2s}
+</style>
+</head>
+<body>
+<div id="splash"><div class="logo">🏥</div><h1>个人床边工作量记录工作站</h1><p>v3.0 · Lyon</p></div>
+<div id="app"></div>
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()"><div class="modal-sheet" id="modal-content"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+var FLOORS=[{id:'6F',name:'手术室'},{id:'8F',name:'重症医学科(ICU)'},{id:'9F',name:'静脉配置中心 输血科'},{id:'10F',name:'脊柱微创科'},{id:'11F',name:'老年骨折科 运动医学科'},{id:'12F',name:'创伤足踝科 膝骨关节病科'},{id:'13F',name:'外四科(胰腺中心) 外五科(肛肠科)'},{id:'14F',name:'外二科(胃肠外科) 外三科(结直肠外科)'},{id:'15F',name:'乳腺一科(乳腺修复整形科) 乳腺二科(乳腺肿瘤科)'},{id:'16F',name:'妇科'},{id:'17F',name:'肝胆外科'},{id:'18F',name:'耳鼻咽喉头颈科 眼科'},{id:'19F',name:'儿科 皮肤科'},{id:'20F',name:'神经内科 介入科'},{id:'21F',name:'脾胃病科 内分泌科'},{id:'22F',name:'针灸科'},{id:'23F',name:'肾病科'},{id:'24F',name:'呼吸病科(PCCM) 心胸外科'},{id:'25F',name:'神经外科 神经重症科'},{id:'26F',name:'心血管科 心律失常科'},{id:'27F',name:'脑血管病科'},{id:'28F',name:'肿瘤科'},{id:'29F',name:'血液科'}];
+var MARKERS=['肥胖','水肿','骨科固定物','不能配合','婴幼儿','引流管','起搏器'];
+var QUALITY_LABELS=['','⭐ 一般','⭐⭐ 良好','⭐⭐⭐ 优秀'];
+var state={tab:'work',calMonth:'',addMode:'single'};
+var data={logs:{},profile:{name:'',height:0,weight:0,hospital:'',dept:''},favorites:[],contacts:[{name:'ICU',phone:'',icon:'🏥'},{name:'急诊科',phone:'',icon:'🚑'},{name:'3F 外科',phone:'',icon:'🔪'}],notes:[],handover:'',achievements:{}};
+
+function today(){return new Date().toISOString().slice(0,10);}
+function loadData(){try{var s=localStorage.getItem('gdhtcm_data');if(s){var d=JSON.parse(s);data.logs=d.logs||{};data.profile=Object.assign(data.profile,d.profile||{});data.favorites=d.favorites||[];data.contacts=d.contacts||data.contacts;data.notes=d.notes||[];data.handover=d.handover||'';data.achievements=d.achievements||{};}}catch(e){}}
+function saveData(){try{localStorage.setItem('gdhtcm_data',JSON.stringify(data));}catch(e){}}
+function getLog(day){if(!data.logs[day])data.logs[day]={shift:'rest',count:0,taxMode:false,patients:[],mealBreak:null,_timerStart:null,_timerPaused:false,_timerElapsed:0};return data.logs[day];}
+function applyTheme(){if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}
+function toggleTheme(){var d=document.documentElement.classList.toggle('dark');localStorage.setItem('theme',d?'dark':'light');render();}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
+function openModal(html,center){var m=document.getElementById('modal');var c=document.getElementById('modal-content');c.innerHTML='<div class="modal-handle"></div>'+html;if(center)m.classList.add('modal-center');else m.classList.remove('modal-center');m.classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function fmtDate(ds){var p=ds.split('-');return parseInt(p[1])+'月'+parseInt(p[2])+'日';}
+function monthDays(ym){var p=ym.split('-');return new Date(p[0],p[1],0).getDate();}
+function monthLogs(ym){var r=[];Object.keys(data.logs).forEach(function(k){if(k.startsWith(ym))r.push(data.logs[k]);});return r;}
+function allLogs(){return Object.keys(data.logs).sort();}
+
+// ===== TIMER =====
+function workTimerRunning(){var l=getLog(today());return !!l._timerStart&&!l._timerPaused;}
+function workTimerSeconds(){var l=getLog(today());if(!l._timerStart)return 0;if(l._timerPaused)return l._timerElapsed||0;return l._timerElapsed+(Date.now()-l._timerStart)/1000;}
+function formatTimer(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60);return(h?h+':':'')+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');}
+function toggleWorkTimer(){var l=getLog(today());if(!l._timerStart||l._timerPaused){l._timerStart=Date.now();l._timerPaused=false;if(!l._timerElapsed)l._timerElapsed=0;toast('▶ 计时开始');}else{l._timerElapsed=workTimerSeconds();l._timerPaused=true;l._timerStart=null;toast('⏸ 已暂停');}saveData();render();}
+function resetWorkTimer(){var l=getLog(today());l._timerStart=null;l._timerPaused=false;l._timerElapsed=0;saveData();render();toast('计时已重置');}
+var _timerInterval=null;
+function startTimerTick(){if(_timerInterval)clearInterval(_timerInterval);_timerInterval=setInterval(function(){if(state.tab==='work'&&workTimerRunning()){var el=document.getElementById('timer-display');if(el)el.textContent=formatTimer(workTimerSeconds());}},1000);}
+
+// ===== QUICK ADD =====
+function quickAdd(n){var l=getLog(today());l.count=(l.count||0)+n;saveData();render();toast('✅ +'+n+' 床边');}
+
+// ===== STREAK =====
+function calcStreak(){var streak=0,d=new Date();while(true){var ds=d.toISOString().slice(0,10);var l=data.logs[ds];if(l&&l.shift!=='rest'){streak++;d.setDate(d.getDate()-1);}else break;}return streak;}
+
+// ===== CALORIE =====
+function calcCalorie(){var l=getLog(today());var w=data.profile.weight||65;var pts=l.patients||[];var done=pts.filter(function(p){return p.status==='done';});
+var floors=new Set(done.map(function(p){return p.floor;}));
+var timerSec=workTimerSeconds();
+var workMin=Math.max(timerSec/60,done.length*8);
+var pushMin=done.length*3;var opMin=done.length*5;var waitMin=Math.max(0,workMin-pushMin-opMin);
+var cal=(4.0*w*pushMin/60)+(2.5*w*opMin/60)+(1.8*w*waitMin/60);
+cal+=floors.size*w*0.02*done.length;
+return Math.round(cal);}
+function calorieEquiv(cal){var rice=Math.round(cal/116);var tea=Math.round(cal/360);return '≈ '+rice+' 碗米饭 · ≈ '+tea+' 杯奶茶';}
+
+// ===== RATING =====
+function getRating(c,daily){
+var t=daily?[
+  {min:0,max:0,t:'床边·待命',e:'😴',n:1},
+  {min:1,max:3,t:'床边·热身',e:'🚶',n:4},
+  {min:4,max:7,t:'床边·发力',e:'💪',n:8},
+  {min:8,max:12,t:'床边·高效',e:'⚡',n:13},
+  {min:13,max:17,t:'床边·超神',e:'🔥',n:18},
+  {min:18,max:99999,t:'床边·传奇',e:'🏆',n:0}
+]:[
+  {min:0,max:30,t:'床边萌新',e:'🌱',n:31},
+  {min:31,max:60,t:'床边学徒',e:'📖',n:61},
+  {min:61,max:90,t:'床边能手',e:'💪',n:91},
+  {min:91,max:120,t:'床边精英',e:'⚡',n:121},
+  {min:121,max:180,t:'床边大师',e:'🔥',n:181},
+  {min:181,max:240,t:'床边王者',e:'👑',n:241},
+  {min:241,max:99999,t:'床边小王子',e:'🏆',n:0}
+];
+var r=t[0];for(var i=0;i<t.length;i++)if(c>=t[i].min)r=t[i];
+var pct=r.max===99999?100:Math.min(100,((c-r.min)/(r.max-r.min+1))*100);
+return{title:r.t,emoji:r.e,pct:pct,next:r.n>0?r.n-c:0};
+}
+
+// ===== ACHIEVEMENTS =====
+var MONTH_ACH=[
+  {min:0,max:30,t:'床边萌新',e:'🌱'},{min:31,max:60,t:'床边学徒',e:'📖'},{min:61,max:90,t:'床边能手',e:'💪'},
+  {min:91,max:120,t:'床边精英',e:'⚡'},{min:121,max:180,t:'床边大师',e:'🔥'},{min:181,max:240,t:'床边王者',e:'👑'},
+  {min:241,max:99999,t:'床边小王子',e:'🏆'}
+];
+var YEAR_ACH=[
+  {min:0,max:300,t:'年度新秀',e:'🌱'},{min:301,max:600,t:'年度学徒',e:'📖'},{min:601,max:900,t:'年度能手',e:'💪'},
+  {min:901,max:1200,t:'年度精英',e:'⚡'},{min:1201,max:1800,t:'年度大师',e:'🔥'},{min:1801,max:2400,t:'年度王者',e:'👑'},
+  {min:2401,max:99999,t:'床边小王子',e:'🏆'}
+];
+var SPECIAL_ACH=[
+  {id:'first',t:'初出茅庐',e:'🎯',desc:'完成第一个床边',check:function(){return totalDone()>=1;}},
+  {id:'daily12',t:'日行千里',e:'🚀',desc:'单日完成12+床边',check:function(){return Object.values(data.logs).some(function(l){return(l.count||0)>=12;});}},
+  {id:'floors3',t:'全能技师',e:'🌍',desc:'单日覆盖3+楼层',check:function(){return Object.values(data.logs).some(function(l){var f=new Set((l.patients||[]).map(function(p){return p.floor;}));return f.size>=3;});}},
+  {id:'zero_err',t:'零失误',e:'💎',desc:'连续50单无重拍',check:function(){return checkZeroError();}},
+  {id:'streak30',t:'铁人三项',e:'🏅',desc:'连续出勤30天',check:function(){return calcStreak()>=30;}},
+  {id:'early',t:'早起的鸟儿',e:'🐦',desc:'6点前开始计时',check:function(){return Object.values(data.logs).some(function(l){return l._timerStart;});}},
+  {id:'night',t:'深夜战士',e:'🦉',desc:'22点后还在计时',check:function(){return false;}},
+  {id:'total60',t:'百人斩',e:'⚔️',desc:'累计完成60床边',check:function(){return totalDone()>=60;}},
+  {id:'total600',t:'千人斩',e:'🗡️',desc:'累计完成600床边',check:function(){return totalDone()>=600;}},
+  {id:'total6000',t:'万人斩',e:'👑',desc:'累计完成6000床边',check:function(){return totalDone()>=6000;}}
+];
+function totalDone(){var t=0;Object.values(data.logs).forEach(function(l){t+=(l.count||0);});return t;}
+function monthTotal(ym){var t=0;Object.keys(data.logs).forEach(function(k){if(k.startsWith(ym))t+=(data.logs[k].count||0);});return t;}
+function yearTotal(y){var t=0;Object.keys(data.logs).forEach(function(k){if(k.startsWith(y))t+=(data.logs[k].count||0);});return t;}
+function checkZeroError(){var streak=0;Object.keys(data.logs).sort().forEach(function(k){var l=data.logs[k];(l.patients||[]).forEach(function(p){if(p.quality===3)streak++;else streak=0;});});return streak>=50;}
+function getMonthRating(ym){var c=monthTotal(ym);var r=MONTH_ACH[0];for(var i=0;i<MONTH_ACH.length;i++)if(c>=MONTH_ACH[i].min)r=MONTH_ACH[i];return r;}
+function getYearRating(y){var c=yearTotal(y);var r=YEAR_ACH[0];for(var i=0;i<YEAR_ACH.length;i++)if(c>=YEAR_ACH[i].min)r=YEAR_ACH[i];return r;}
+
+// ===== PATIENT FUNCTIONS =====
+function togPt(i){var pts=getLog(today()).patients;var p=pts[i];if(p){p.status=p.status==='done'?'pending':'done';if(p.status==='done'){p.time=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});p.endTime=Date.now();}saveData();render();}}
+function pausePt(i){var p=getLog(today()).patients[i];if(p){p.status=p.status==='paused'?'pending':'paused';saveData();render();}}
+function rmPt(i){getLog(today()).patients.splice(i,1);saveData();render();}
+function toggleUrgent(i){var p=getLog(today()).patients[i];if(p){p.urgent=!p.urgent;saveData();render();}}
+
+// ===== BATCH ADD =====
+function expandBeds(text){
+var beds=[];
+text.split('\n').forEach(function(line){
+  line=line.trim();if(!line)return;
+  var m=line.match(/^(.+?)[\-~～](\d+)$/);
+  if(m){
+    var prefix=m[1];var end=parseInt(m[2]);
+    var startMatch=prefix.match(/(\d+)$/);
+    if(startMatch){var start=parseInt(startMatch[1]);var pre=prefix.slice(0,-startMatch[1].length);
+      for(var i=start;i<=end;i++)beds.push(pre+i+'床');}
+    else beds.push(line);
+  }else beds.push(line);
+});
+return beds;
+}
+
+function showAddPt(){
+var favHtml='';
+if(data.favorites.length){
+  favHtml='<div style="margin-bottom:12px"><div class="form-label">⭐ 常用床号（点击导入）</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+  data.favorites.forEach(function(f,i){favHtml+='<span class="marker-chip" onclick="importFav('+i+')">'+f+'</span>';});
+  favHtml+='</div></div>';
+}
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">添加拍片任务</div>';
+h+='<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn btn-sm '+(state.addMode==='single'?'btn-green':'btn-outline')+'" style="flex:1" onclick="state.addMode=\'single\';showAddPt()">单个添加</button><button class="btn btn-sm '+(state.addMode==='batch'?'btn-green':'btn-outline')+'" style="flex:1" onclick="state.addMode=\'batch\';showAddPt()">批量添加</button></div>';
+h+=favHtml;
+if(state.addMode==='batch'){
+  h+='<div class="form-row"><div class="form-label">楼层（统一）</div><select id="ap-floor" class="form-select" onchange="onFloorChange()">';
+  FLOORS.forEach(function(f){h+='<option value="'+f.id+'">'+f.id+' '+f.name+'</option>';});h+='</select></div>';
+  h+='<div class="form-row"><div class="form-label">科室</div><input id="ap-dept" class="form-input" placeholder="选择楼层后自动填入" readonly style="background:var(--card2)"></div>';
+  h+='<div class="form-row"><div class="form-label">部位（统一）</div><select id="ap-type" class="form-select"><option value="chest">胸部</option><option value="abdomen">腹部</option><option value="both">胸+腹</option><option value="limb">四肢</option><option value="spine">脊柱</option><option value="other">其他</option></select></div>';
+  h+='<div class="form-row"><div class="form-label">床号（每行一个，支持 8F-1~10 格式）</div><textarea id="ap-beds" class="batch-area" placeholder="8F-1床\n8F-2床\n8F-3~10床"></textarea><div class="batch-hint">支持连续床号：8F-1~10 自动展开为1到10床</div></div>';
+  h+='<button class="btn btn-green btn-full" onclick="addBatch()">批量添加</button>';
+}else{
+  h+='<div class="form-row"><div class="form-label">床号</div><input id="ap-bed" class="form-input" placeholder="如 8F-3床"></div>';
+  h+='<div class="form-row"><div class="form-label">楼层</div><select id="ap-floor" class="form-select" onchange="onFloorChangeSingle()">';
+  FLOORS.forEach(function(f){h+='<option value="'+f.id+'">'+f.id+' '+f.name+'</option>';});h+='</select></div>';
+  h+='<div class="form-row"><div class="form-label">科室</div><input id="ap-dept" class="form-input" placeholder="选择楼层后自动填入" readonly style="background:var(--card2)"></div>';
+  h+='<div class="form-row"><div class="form-label">部位</div><select id="ap-type" class="form-select"><option value="chest">胸部</option><option value="abdomen">腹部</option><option value="both">胸+腹</option><option value="limb">四肢</option><option value="spine">脊柱</option><option value="other">其他</option></select></div>';
+  h+='<div class="form-row"><div class="form-label">患者标记</div><div class="marker-chips" id="ap-markers">';
+  MARKERS.forEach(function(m){h+='<span class="marker-chip" onclick="this.classList.toggle(\'selected\')">'+m+'</span>';});h+='</div></div>';
+  h+='<div class="form-row"><div class="form-label">紧急</div><label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="ap-urgent" style="width:18px;height:18px"> 标记为紧急</label></div>';
+  h+='<div class="form-row"><div class="form-label">备注</div><input id="ap-note" class="form-input" placeholder="可选"></div>';
+  h+='<button class="btn btn-green btn-full" onclick="addPt()">确认添加</button>';
+}
+h+='<div onclick="closeModal()" style="margin-top:10px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">取消</div>';
+openModal(h);
+}
+function importFav(i){var el=document.getElementById('ap-beds');if(el){el.value=(el.value?el.value+'\n':'')+data.favorites[i];}else{var bed=document.getElementById('ap-bed');if(bed)bed.value=data.favorites[i];}}
+function onFloorChange(){var sel=document.getElementById('ap-floor');var dept=document.getElementById('ap-dept');if(sel&&dept){var f=FLOORS.find(function(x){return x.id===sel.value;});dept.value=f?f.name:'';}}
+function onFloorChangeSingle(){onFloorChange();}
+function addPt(){var bed=document.getElementById('ap-bed').value.trim();if(!bed){toast('请输入床号');return;}
+var markers=[];document.querySelectorAll('#ap-markers .marker-chip.selected').forEach(function(el){markers.push(el.textContent);});
+var p={bed:bed,floor:document.getElementById('ap-floor').value,dept:document.getElementById('ap-dept').value,type:document.getElementById('ap-type').value,status:'pending',note:document.getElementById('ap-note').value.trim(),time:null,urgent:document.getElementById('ap-urgent').checked,markers:markers,quality:0,startTime:Date.now()};
+getLog(today()).patients.push(p);var l=getLog(today());l.count=(l.count||0)+1;saveData();closeModal();render();toast('✅ 已添加');}
+function addBatch(){var text=document.getElementById('ap-beds').value.trim();if(!text){toast('请输入床号');return;}
+var beds=expandBeds(text);if(!beds.length){toast('未识别到有效床号');return;}
+var floor=document.getElementById('ap-floor').value;var dept=document.getElementById('ap-dept').value;var type=document.getElementById('ap-type').value;var pts=getLog(today()).patients;
+beds.forEach(function(bed){pts.push({bed:bed,floor:floor,dept:dept,type:type,status:'pending',note:'',time:null,urgent:false,markers:[],quality:0,startTime:Date.now()});});
+var l=getLog(today());l.count=(l.count||0)+beds.length;saveData();closeModal();render();toast('✅ 已添加 '+beds.length+' 个任务');}
+
+function showPtDetail(i){
+var p=getLog(today()).patients[i];if(!p)return;
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">'+p.bed+'</div>';
+h+='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"><span class="tag tag-green">'+p.floor+'</span>'+(p.dept?'<span class="tag" style="background:var(--card2);color:var(--text2)">'+p.dept+'</span>':'')+'<span class="tag tag-blue">'+({chest:'胸部',abdomen:'腹部',both:'胸+腹',limb:'四肢',spine:'脊柱',other:'其他'}[p.type]||p.type)+'</span>';
+if(p.urgent)h+='<span class="tag tag-red">紧急</span>';
+(p.markers||[]).forEach(function(m){h+='<span class="tag tag-orange">'+m+'</span>';});
+h+='</div>';
+if(p.note)h+='<div style="font-size:13px;color:var(--text2);margin-bottom:12px">📝 '+p.note+'</div>';
+h+='<div class="form-label" style="margin-bottom:8px">图像质量</div><div class="quality-stars">';
+for(var s=1;s<=3;s++){h+='<span class="quality-star" onclick="setQuality('+i+','+s+')">'+(s<=(p.quality||0)?'⭐':'☆')+'</span>';}
+h+='</div>';
+h+='<div style="margin-top:16px;display:flex;gap:8px">';
+h+='<button class="btn '+(p.status==='done'?'btn-outline':'btn-green')+'" style="flex:1" onclick="togPt('+i+');closeModal()">'+(p.status==='done'?'取消完成':'✅ 完成')+'</button>';
+h+='<button class="btn btn-outline" onclick="toggleUrgent('+i+');closeModal()">'+(p.urgent?'取消紧急':'🔴 紧急')+'</button>';
+h+='<button class="btn btn-red btn-sm" onclick="rmPt('+i+');closeModal()">删除</button>';
+h+='</div>';
+h+='<div onclick="closeModal()" style="margin-top:12px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h,true);
+}
+function setQuality(i,q){var p=getLog(today()).patients[i];if(p){p.quality=q;saveData();showPtDetail(i);}}
+
+// ===== HANDOVER =====
+function showHandover(){
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">📝 交接班备忘</div>';
+h+='<textarea id="handover-text" class="form-textarea" style="min-height:120px" placeholder="记录未完成的任务、需要跟进的事项...">'+(data.handover||'')+'</textarea>';
+h+='<button class="btn btn-green btn-full" style="margin-top:12px" onclick="saveHandover()">保存</button>';
+h+='<div onclick="closeModal()" style="margin-top:10px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">取消</div>';
+openModal(h);
+}
+function saveHandover(){data.handover=document.getElementById('handover-text').value;saveData();closeModal();toast('✅ 已保存');}
+
+// ===== END DAY =====
+function endDaySummary(){
+var l=getLog(today());var pts=l.patients||[];var done=pts.filter(function(p){return p.status==='done';});
+var cal=calcCalorie();var timerSec=workTimerSeconds();
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">📊 今日工作小结</div>';
+h+='<div class="report-card"><h3>📈 工作量</h3>';
+h+='<div class="report-row"><span class="label">总任务</span><span class="value">'+pts.length+' 个</span></div>';
+h+='<div class="report-row"><span class="label">已完成</span><span class="value">'+done.length+' 个</span></div>';
+h+='<div class="report-row"><span class="label">完成率</span><span class="value">'+(pts.length?Math.round(done.length/pts.length*100):0)+'%</span></div>';
+h+='<div class="report-row"><span class="label">工作时长</span><span class="value">'+formatTimer(timerSec)+'</span></div>';
+h+='</div>';
+h+='<div class="report-card"><h3>🔥 消耗</h3>';
+h+='<div class="report-row"><span class="label">卡路里</span><span class="value" style="color:var(--orange)">'+cal+' kcal</span></div>';
+h+='<div class="report-row"><span class="label">相当于</span><span class="value">'+calorieEquiv(cal)+'</span></div>';
+h+='</div>';
+if(done.length){h+='<div class="report-card"><h3>📋 完成明细</h3>';
+done.forEach(function(p){h+='<div class="report-row"><span class="label">'+p.bed+' '+p.floor+'</span><span class="value">'+p.time+'</span></div>';});
+h+='</div>';}
+var summary='今日完成 '+done.length+'/'+pts.length+' 个床边任务，工作 '+formatTimer(timerSec)+'，消耗 '+cal+' kcal';
+h+='<div style="margin-top:12px;padding:12px;background:var(--green3);border-radius:var(--radius3);font-size:13px;color:var(--green);font-weight:600">📋 一句话总结：'+summary+'</div>';
+h+='<button class="btn btn-green btn-full" style="margin-top:12px" onclick="copyText(\''+summary.replace(/'/g,"\\'")+'\')">复制总结</button>';
+h+='<div onclick="closeModal()" style="margin-top:10px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h,true);
+}
+function copyText(t){navigator.clipboard.writeText(t).then(function(){toast('📋 已复制');}).catch(function(){toast('复制失败');});}
+
+// ===== EXPOSURE REF =====
+function showExposureRef(){
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">📐 曝光参数速查</div>';
+var refs=[
+  {part:'胸部(成人)',kv:'110-125',mas:'2-4',sid:'180cm',desc:'常规PA位'},
+  {part:'胸部(儿童)',kv:'80-100',mas:'1-2',sid:'100cm',desc:'根据年龄调整'},
+  {part:'腹部',kv:'75-85',mas:'50-80',sid:'100cm',desc:'需屏气'},
+  {part:'颈椎',kv:'65-70',mas:'40-60',sid:'150cm',desc:'侧位稍高'},
+  {part:'腰椎',kv:'80-90',mas:'80-120',sid:'100cm',desc:'正侧位'},
+  {part:'骨盆',kv:'75-85',mas:'60-80',sid:'100cm',desc:'前后位'},
+  {part:'四肢',kv:'50-60',mas:'5-15',sid:'100cm',desc:'根据部位调整'},
+  {part:'肩关节',kv:'60-70',mas:'10-20',sid:'100cm',desc:'Y位/正位'}
+];
+refs.forEach(function(r){
+  h+='<div class="report-card"><h3>'+r.part+' <span style="font-size:11px;color:var(--text2);font-weight:500">'+r.desc+'</span></h3>';
+  h+='<div class="report-row"><span class="label">kV</span><span class="value">'+r.kv+'</span></div>';
+  h+='<div class="report-row"><span class="label">mAs</span><span class="value">'+r.mas+'</span></div>';
+  h+='<div class="report-row"><span class="label">SID</span><span class="value">'+r.sid+'</span></div></div>';
+});
+h+='<div onclick="closeModal()" style="margin-top:12px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h);
+}
+
+// ===== FAVORITES =====
+function showFavorites(){
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">⭐ 常用床号管理</div>';
+if(data.favorites.length){
+  h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">';
+  data.favorites.forEach(function(f,i){h+='<span class="marker-chip selected" style="padding-right:20px;position:relative" onclick="rmFav('+i+')">'+f+'<span style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:14px">×</span></span>';});
+  h+='</div>';}
+h+='<div class="form-row"><div class="form-label">添加常用床号</div><div style="display:flex;gap:8px"><input id="fav-input" class="form-input" placeholder="如 ICU-1~10" style="flex:1"><button class="btn btn-green btn-sm" onclick="addFav()">添加</button></div></div>';
+h+='<div class="batch-hint">支持连续格式：ICU-1~10</div>';
+h+='<div onclick="closeModal()" style="margin-top:12px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h);
+}
+function addFav(){var v=document.getElementById('fav-input').value.trim();if(!v)return;
+var beds=expandBeds(v);beds.forEach(function(b){if(data.favorites.indexOf(b)===-1)data.favorites.push(b);});
+saveData();showFavorites();toast('✅ 已添加');}
+function rmFav(i){data.favorites.splice(i,1);saveData();showFavorites();}
+
+// ===== CONTACTS =====
+function showContacts(){
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">📞 科室快捷电话</div>';
+data.contacts.forEach(function(c,i){
+  h+='<div class="contact-item"><div class="c-icon">'+c.icon+'</div><div style="flex:1"><div class="c-name">'+c.name+'</div><div class="c-phone">'+(c.phone||'未设置')+'</div></div>';
+  h+='<button class="btn btn-sm btn-outline" onclick="editContact('+i+')">编辑</button></div>';
+});
+h+='<button class="btn btn-outline btn-full" style="margin-top:8px" onclick="addContact()">+ 添加科室</button>';
+h+='<div onclick="closeModal()" style="margin-top:12px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h);
+}
+function addContact(){data.contacts.push({name:'新科室',phone:'',icon:'🏥'});saveData();showContacts();}
+function editContact(i){
+var c=data.contacts[i];
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">编辑科室</div>';
+h+='<div class="form-row"><div class="form-label">名称</div><input id="ec-name" class="form-input" value="'+c.name+'"></div>';
+h+='<div class="form-row"><div class="form-label">电话</div><input id="ec-phone" class="form-input" value="'+c.phone+'" placeholder="如 8888"></div>';
+h+='<div class="form-row"><div class="form-label">图标</div><input id="ec-icon" class="form-input" value="'+c.icon+'"></div>';
+h+='<button class="btn btn-green btn-full" onclick="saveContact('+i+')">保存</button>';
+h+='<button class="btn btn-red btn-full" style="margin-top:8px" onclick="data.contacts.splice('+i+',1);saveData();showContacts()">删除</button>';
+h+='<div onclick="showContacts()" style="margin-top:10px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">返回</div>';
+openModal(h);
+}
+function saveContact(i){data.contacts[i]={name:document.getElementById('ec-name').value,phone:document.getElementById('ec-phone').value,icon:document.getElementById('ec-icon').value};saveData();showContacts();toast('✅ 已保存');}
+
+// ===== PERSONAL NOTES =====
+function showNotes(){
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">📓 个人备忘</div>';
+data.notes.slice().reverse().forEach(function(n,i){
+  var ri=data.notes.length-1-i;
+  h+='<div class="note-item">'+n.text+'<div class="note-time">'+n.time+' <span style="cursor:pointer;color:var(--red)" onclick="data.notes.splice('+ri+',1);saveData();showNotes()">删除</span></div></div>';
+});
+h+='<div class="form-row" style="margin-top:12px"><textarea id="note-input" class="form-textarea" placeholder="记点什么..."></textarea></div>';
+h+='<button class="btn btn-green btn-full" onclick="addNote()">添加</button>';
+h+='<div onclick="closeModal()" style="margin-top:10px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h);
+}
+function addNote(){var t=document.getElementById('note-input').value.trim();if(!t)return;
+data.notes.push({text:t,time:new Date().toLocaleString('zh-CN')});saveData();showNotes();toast('✅ 已添加');}
+
+// ===== BODY DATA =====
+function showBodyData(){
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">📏 身体数据</div>';
+h+='<div class="form-row"><div class="form-label">身高 (cm)</div><input id="bd-height" class="form-input" type="number" value="'+(data.profile.height||'')+'" placeholder="如 170"></div>';
+h+='<div class="form-row"><div class="form-label">体重 (kg)</div><input id="bd-weight" class="form-input" type="number" value="'+(data.profile.weight||'')+'" placeholder="如 65"></div>';
+if(data.profile.height&&data.profile.weight){
+var bmi=(data.profile.weight/Math.pow(data.profile.height/100,2)).toFixed(1);
+h+='<div style="padding:12px;background:var(--green3);border-radius:var(--radius3);font-size:13px;color:var(--green);font-weight:600;margin-bottom:12px">BMI: '+bmi+' ('+(bmi<18.5?'偏瘦':bmi<24?'正常':bmi<28?'偏胖':'肥胖')+')  · 用于精确计算卡路里消耗</div>';
+}else{
+h+='<div style="padding:12px;background:var(--green3);border-radius:var(--radius3);font-size:13px;color:var(--green);font-weight:600;margin-bottom:12px">💡 填写身高体重后可精确计算卡路里消耗</div>';
+}
+h+='<button class="btn btn-green btn-full" onclick="saveBodyData()">保存</button>';
+h+='<div onclick="closeModal()" style="margin-top:10px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h);
+}
+function saveBodyData(){data.profile.height=parseInt(document.getElementById('bd-height').value)||0;data.profile.weight=parseInt(document.getElementById('bd-weight').value)||0;saveData();closeModal();render();toast('✅ 已保存');}
+
+// ===== MONTHLY REPORT =====
+function showMonthReport(){
+var ym=state.calMonth||today().slice(0,7);var p=ym.split('-');var y=p[0],m=p[1];
+var logs=monthLogs(ym);var total=0,income=0,workDays=0;
+logs.forEach(function(l){total+=(l.count||0);income+=(l.count||0)*(l.taxMode?0.6:1)*30;workDays+=(l.shift!=='rest'?1:0);});
+var avg=workDays?Math.round(total/workDays):0;var cal=Math.round(total*8*(data.profile.weight||65)/70);
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">📊 '+y+'年'+m+'月 报告</div>';
+h+='<div class="report-card"><h3>📈 工作量</h3>';
+h+='<div class="report-row"><span class="label">总床边数</span><span class="value" style="color:var(--green)">'+total+'</span></div>';
+h+='<div class="report-row"><span class="label">出勤天数</span><span class="value">'+workDays+' 天</span></div>';
+h+='<div class="report-row"><span class="label">日均床边</span><span class="value">'+avg+'</span></div>';
+h+='<div class="report-row"><span class="label">预估收入</span><span class="value" style="color:var(--blue)">¥'+income+'</span></div>';
+h+='<div class="report-row"><span class="label">卡路里消耗</span><span class="value" style="color:var(--orange)">~'+cal+' kcal</span></div>';
+h+='</div>';
+var mr=getMonthRating(ym);
+h+='<div class="achieve-title-card"><div class="ach-icon">'+mr.e+'</div><div class="ach-name">'+mr.t+'</div><div class="ach-progress">'+ym+' 累计 '+total+' 床边</div></div>';
+h+='<div onclick="closeModal()" style="margin-top:12px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h,true);
+}
+
+// ===== RENDER =====
+function render(){
+var app=document.getElementById('app');
+var h='<div class="view-content" id="view-content">';
+if(state.tab==='work')h+=renderWork();
+else if(state.tab==='schedule')h+=renderSchedule();
+else if(state.tab==='stats')h+=renderStats();
+else if(state.tab==='ach')h+=renderAchievements();
+else if(state.tab==='me')h+=renderMe();
+h+='</div>';
+h+='<div class="tab-bar">';
+h+='<div class="tab-item '+(state.tab==='work'?'active':'')+'" onclick="switchTab(\'work\')"><span class="tab-icon">📋</span><span>工作台</span></div>';
+h+='<div class="tab-item '+(state.tab==='schedule'?'active':'')+'" onclick="switchTab(\'schedule\')"><span class="tab-icon">📅</span><span>排班</span></div>';
+h+='<div class="tab-item '+(state.tab==='stats'?'active':'')+'" onclick="switchTab(\'stats\')"><span class="tab-icon">📊</span><span>统计</span></div>';
+h+='<div class="tab-item '+(state.tab==='ach'?'active':'')+'" onclick="switchTab(\'ach\')"><span class="tab-icon">🏆</span><span>成就</span></div>';
+h+='<div class="tab-item '+(state.tab==='me'?'active':'')+'" onclick="switchTab(\'me\')"><span class="tab-icon">👤</span><span>我的</span></div>';
+h+='</div>';
+app.innerHTML=h;
+if(state.tab==='work')startTimerTick();
+}
+
+function switchTab(t){state.tab=t;render();}
+
+function renderWork(){
+var td=today();var log=getLog(td);var pts=log.patients||[];
+var mTotal=monthTotal(td.slice(0,7));var mIncome=0;var mLogs=monthLogs(td.slice(0,7));
+mLogs.forEach(function(l){mIncome+=(l.count||0)*(l.taxMode?0.6:1)*30;});
+var rating=getRating(log.count||0,true);
+var cal=calcCalorie();var done=pts.filter(function(p){return p.status==='done';}).length;
+var pct=pts.length?Math.round(done/pts.length*100):0;
+
+var h='<div class="view-header"><div class="view-title">工作台</div><div class="view-subtitle">'+fmtDate(td)+' · '+({day:'白班',night:'夜班',rest:'休息'}[log.shift]||'未设置')+'</div></div>';
+
+// Stats grid
+h+='<div class="stat-grid animate-in"><div class="stat-item"><div class="stat-value" style="color:var(--green)">'+(log.count||0)+'</div><div class="stat-label">今日床边</div></div>';
+h+='<div class="stat-item"><div class="stat-value" style="color:var(--orange)">'+mTotal+'</div><div class="stat-label">本月累计</div></div>';
+h+='<div class="stat-item"><div class="stat-value" style="color:var(--blue)">¥'+mIncome+'</div><div class="stat-label">本月收入</div></div>';
+h+='<div class="stat-item"><div class="stat-value" style="color:var(--purple)">'+(mLogs.length?Math.round(mTotal/mLogs.length):0)+'</div><div class="stat-label">日均床边</div></div></div>';
+
+// Rating card
+h+='<div class="rating-card animate-in"><div class="rating-emoji">'+rating.emoji+'</div><div class="rating-title">'+rating.title+'</div>';
+h+='<div class="rating-count">今日 '+(log.count||0)+' 床边'+(rating.next>0?' · 距下一等级还需 '+rating.next:'')+'</div>';
+h+='<div class="rating-progress"><div class="rating-bar" style="width:'+rating.pct+'%"></div></div></div>';
+
+// Calorie card
+h+='<div class="calorie-card animate-in"><div style="display:flex;align-items:center;justify-content:space-between"><div><div class="calorie-value">🔥 '+cal+'</div><div class="calorie-unit">千卡消耗</div><div class="calorie-equiv">'+calorieEquiv(cal)+'</div></div>';
+h+='<div class="progress-ring"><svg width="56" height="56"><circle class="ring-bg" cx="28" cy="28" r="24" fill="none" stroke-width="4"/><circle class="ring-fg" cx="28" cy="28" r="24" fill="none" stroke-width="4" stroke-dasharray="'+Math.min(pct,100)*1.508+' 150.8"/></svg><div class="ring-text">'+pct+'%</div></div></div></div>';
+
+// Timer
+h+='<div class="card animate-in" style="padding:12px 14px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:13px;font-weight:700">⏱️ 工作计时</div><div id="timer-display" style="font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--green)">'+formatTimer(workTimerSeconds())+'</div></div><div style="display:flex;gap:6px"><button class="btn btn-green" style="flex:1;padding:8px;font-size:12px" onclick="toggleWorkTimer()">'+(workTimerRunning()?'⏸ 暂停':'▶ 开始计时')+'</button><button class="btn btn-outline" style="padding:8px;font-size:12px" onclick="resetWorkTimer()">重置</button></div></div>';
+
+// Floor Navigation Card
+h+='<div class="card animate-in" style="padding:0;overflow:hidden;cursor:pointer;background:linear-gradient(135deg,#0a7e5e,#0d9b6f);color:#fff;border:none" onclick="showFloorNav()">';
+h+='<div style="padding:14px 16px;display:flex;align-items:center;gap:12px">';
+h+='<div style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px">🏥</div>';
+h+='<div style="flex:1"><div style="font-size:15px;font-weight:800">楼层导航</div><div style="font-size:11px;opacity:.8;margin-top:2px">快速查找科室位置</div></div>';
+h+='<div style="font-size:20px;opacity:.6">›</div>';
+h+='</div>';
+h+='<div style="padding:0 16px 12px;display:flex;gap:6px;overflow-x:auto">';
+var previewFloors=[{id:'6F',n:'手术室'},{id:'8F',n:'重症医学科'},{id:'16F',n:'妇科'},{id:'24F',n:'呼吸病科'},{id:'26F',n:'心血管科'}];
+previewFloors.forEach(function(pf){
+  h+='<div style="flex-shrink:0;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.18);font-size:11px;font-weight:600">'+pf.id+' '+pf.n+'</div>';
+});
+h+='</div></div>';
+
+// Quick add
+h+='<div class="card animate-in" style="padding:12px 14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">⚡ 快捷录入</div><div style="display:flex;gap:6px">';
+[1,2,3,5,8,10].forEach(function(n){h+='<button class="btn btn-outline" style="flex:1;padding:8px;font-size:13px;font-weight:700" onclick="quickAdd('+n+')">+'+n+'</button>';});
+h+='</div></div>';
+
+// Streak
+var streak=calcStreak();
+if(streak>0){h+='<div class="card animate-in" style="padding:12px 14px;background:linear-gradient(135deg,#FF9500,#FF6B00);color:#fff;border:none"><div style="display:flex;align-items:center;gap:10px"><div style="font-size:28px">🔥</div><div style="flex:1"><div style="font-size:15px;font-weight:800">连续 '+streak+' 天出勤</div><div style="font-size:11px;opacity:.8">坚持就是胜利！</div></div></div></div>';}
+
+// Meal break
+if(log.mealBreak&&!log.mealBreak.end){
+  h+='<div class="meal-banner animate-in"><span style="font-size:22px">🍽️</span><div class="info"><div class="title">休息中</div><div class="time">从 '+log.mealBreak.start+' 开始</div></div>';
+  h+='<button class="btn-end" onclick="endMeal()">结束休息</button></div>';}
+
+// Handover reminder
+if(data.handover){h+='<div class="card animate-in" style="padding:12px 14px;border-left:3px solid var(--orange)"><div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:4px">📝 交接备忘</div><div style="font-size:13px;color:var(--text2)">'+data.handover+'</div></div>';}
+
+// Patient list
+h+='<div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px"><div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:6px">📋 今日拍片清单</div><button class="btn btn-green btn-sm" onclick="showAddPt()">+ 添加</button></div>';
+if(!pts.length){h+='<div class="card"><div class="empty-state"><div class="emoji">📋</div><div class="text">暂无拍片任务</div></div></div>';}
+else{
+  // Group by floor
+  var groups={};
+  pts.forEach(function(p,i){if(!groups[p.floor])groups[p.floor]=[];groups[p.floor].push({p:p,idx:i});});
+  // Sort: urgent first
+  Object.keys(groups).forEach(function(k){groups[k].sort(function(a,b){return(b.p.urgent?1:0)-(a.p.urgent?1:0);});});
+  var floorOrder=FLOORS.map(function(f){return f.id;});
+  floorOrder.forEach(function(floor){
+    if(!groups[floor])return;
+    var items=groups[floor];
+    var floorInfo=FLOORS.find(function(x){return x.id===floor;});
+    var floorLabel=floorInfo?(floor+' '+floorInfo.name):floor;
+    h+='<div class="floor-group animate-in"><div class="floor-header">📍 '+floorLabel+' <span class="floor-count">'+items.length+'项</span></div>';
+    items.forEach(function(item){
+      var p=item.p;var i=item.idx;
+      h+='<div class="check-item '+(p.status==='done'?'done':'')+' '+(p.urgent?'urgent':'')+'" onclick="showPtDetail('+i+')">';
+      h+='<div class="check-name">'+p.bed;
+      (p.markers||[]).forEach(function(m){h+=' <span class="tag tag-orange" style="font-size:9px">'+m+'</span>';});
+      if(p.quality===3)h+=' ⭐';
+      h+='</div>';
+      h+='<span class="check-tag tag-green">'+({chest:'胸',abdomen:'腹',both:'胸腹',limb:'四肢',spine:'脊柱',other:'其他'}[p.type]||p.type)+'</span>';
+      if(p.time)h+='<span style="font-size:10px;color:var(--text3)">'+p.time+'</span>';
+      h+='<div class="check-actions">';
+      h+='<button class="check-btn '+(p.status==='done'?'btn-done':'')+'" onclick="event.stopPropagation();togPt('+i+')">'+(p.status==='done'?'✓':'○')+'</button>';
+      h+='<button class="check-btn" onclick="event.stopPropagation();rmPt('+i+')" style="color:var(--red)">×</button>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  });
+  // Ungrouped
+  Object.keys(groups).forEach(function(floor){if(floorOrder.indexOf(floor)===-1){
+    var items=groups[floor];
+    h+='<div class="floor-group animate-in"><div class="floor-header">📍 '+floor+' <span class="floor-count">'+items.length+'项</span></div>';
+    items.forEach(function(item){var p=item.p;var i=item.idx;
+      h+='<div class="check-item '+(p.status==='done'?'done':'')+'" onclick="showPtDetail('+i+')"><div class="check-name">'+p.bed+'</div>';
+      h+='<div class="check-actions"><button class="check-btn '+(p.status==='done'?'btn-done':'')+'" onclick="event.stopPropagation();togPt('+i+')">'+(p.status==='done'?'✓':'○')+'</button>';
+      h+='<button class="check-btn" onclick="event.stopPropagation();rmPt('+i+')" style="color:var(--red)">×</button></div></div>';});
+    h+='</div>';
+  }});
+}
+return h;
+}
+
+function renderSchedule(){
+var ym=state.calMonth||today().slice(0,7);var p=ym.split('-').map(Number);var y=p[0],m=p[1];
+var days=monthDays(ym);var firstDay=new Date(y,m-1,1).getDay();var td=today();
+var h='<div class="view-header"><div class="view-title">排班</div><div class="view-subtitle">点击日期设置班次</div></div>';
+h+='<div class="cal-nav" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;margin-bottom:8px"><div class="btn btn-sm btn-outline" onclick="chMonth(-1)">‹</div><div style="font-size:15px;font-weight:800">'+y+'年'+m+'月</div><div class="btn btn-sm btn-outline" onclick="chMonth(1)">›</div></div>';
+h+='<div class="cal">';
+['日','一','二','三','四','五','六'].forEach(function(d){h+='<div class="cal-hd">'+d+'</div>';});
+for(var i=0;i<firstDay;i++)h+='<div></div>';
+for(var d=1;d<=days;d++){
+  var ds=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  var l=data.logs[ds];var cls='cal-day';
+  if(ds===td)cls+=' today';
+  if(l&&l.shift==='rest')cls+=' rest';
+  else if(l)cls+=' work';
+  h+='<div class="'+cls+'" onclick="setShift(\''+ds+'\')">'+d+'</div>';
+}
+h+='</div>';
+// Month summary
+var mLogs=monthLogs(ym);var mTotal=0,mIncome=0;
+mLogs.forEach(function(l){mTotal+=(l.count||0);mIncome+=(l.count||0)*(l.taxMode?0.6:1)*30;});
+h+='<div class="stat-grid"><div class="stat-item"><div class="stat-value" style="color:var(--green)">'+mTotal+'</div><div class="stat-label">本月床边</div></div>';
+h+='<div class="stat-item"><div class="stat-value" style="color:var(--blue)">¥'+mIncome+'</div><div class="stat-label">本月收入</div></div></div>';
+h+='<button class="btn btn-outline btn-full" onclick="showMonthReport()">📊 查看月度报告</button>';
+return h;
+}
+
+function renderStats(){
+var ym=state.calMonth||today().slice(0,7);var p=ym.split('-').map(Number);var y=p[0],m=p[1];
+var days=monthDays(ym);var firstDay=new Date(y,m-1,1).getDay();var td=today();
+var h='<div class="view-header"><div class="view-title">统计</div><div class="view-subtitle">数据概览</div></div>';
+h+='<div class="cal-nav" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;margin-bottom:8px"><div class="btn btn-sm btn-outline" onclick="chMonth(-1)">‹</div><div style="font-size:15px;font-weight:800">'+y+'年'+m+'月</div><div class="btn btn-sm btn-outline" onclick="chMonth(1)">›</div></div>';
+h+='<div class="cal">';
+['日','一','二','三','四','五','六'].forEach(function(d){h+='<div class="cal-hd">'+d+'</div>';});
+for(var i=0;i<firstDay;i++)h+='<div></div>';
+for(var d=1;d<=days;d++){
+  var ds=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  var l=data.logs[ds];var cls='cal-day';
+  if(ds===td)cls+=' today';
+  var cnt=l?(l.count||0):0;
+  if(l&&l.shift==='rest')cls+=' rest';
+  else if(cnt>0)cls+=' work';
+  h+='<div class="'+cls+'" onclick="showDayDetail(\''+ds+'\')">'+d+(cnt>0?'<div style="font-size:9px;font-weight:800;color:var(--green)">'+cnt+'</div>':'')+'</div>';
+}
+h+='</div>';
+// Summary
+var mLogs=monthLogs(ym);var mTotal=0,mIncome=0;
+mLogs.forEach(function(l){mTotal+=(l.count||0);mIncome+=(l.count||0)*(l.taxMode?0.6:1)*30;});
+h+='<div class="stat-grid"><div class="stat-item"><div class="stat-value" style="color:var(--green)">'+mTotal+'</div><div class="stat-label">总床边</div></div>';
+h+='<div class="stat-item"><div class="stat-value" style="color:var(--blue)">¥'+mIncome+'</div><div class="stat-label">月收入</div></div></div>';
+h+='<button class="btn btn-outline btn-full" onclick="showExposureRef()">📐 曝光参数速查</button>';
+return h;
+}
+
+function renderAchievements(){
+var now=new Date();var ym=now.toISOString().slice(0,7);var y=now.getFullYear().toString();
+var mCount=monthTotal(ym);var yCount=yearTotal(y);
+var mR=getMonthRating(ym);var yR=getYearRating(y);
+
+var h='<div class="view-header"><div class="view-title">成就墙</div><div class="view-subtitle">你的荣耀时刻</div></div>';
+
+// Monthly
+h+='<div class="section-title">📅 本月成就 · '+ym+'</div>';
+h+='<div class="achieve-title-card"><div class="ach-icon">'+mR.e+'</div><div class="ach-name">'+mR.t+'</div><div class="ach-progress">累计 '+mCount+' 床边'+(mR!==MONTH_ACH[MONTH_ACH.length-1]?' · 距下一称号还需 '+(MONTH_ACH[MONTH_ACH.indexOf(mR)+1]?MONTH_ACH[MONTH_ACH.indexOf(mR)+1].min-mCount:''):'')+'</div></div>';
+h+='<div class="achieve-grid">';
+MONTH_ACH.forEach(function(a){
+  var unlocked=mCount>=a.min;
+  h+='<div class="achieve-card '+(unlocked?'':'locked')+'"><div class="ach-icon">'+a.e+'</div><div class="ach-name">'+a.t+'</div><div class="ach-desc">'+a.min+(a.max<99999?'-'+a.max:'+')+'</div></div>';
+});
+h+='</div>';
+
+// Yearly
+h+='<div class="section-title">📆 年度成就 · '+y+'</div>';
+h+='<div class="achieve-title-card" style="background:linear-gradient(135deg,#FFD700,#FF6B00)"><div class="ach-icon">'+yR.e+'</div><div class="ach-name">'+yR.t+'</div><div class="ach-progress">累计 '+yCount+' 床边</div></div>';
+h+='<div class="achieve-grid">';
+YEAR_ACH.forEach(function(a){
+  var unlocked=yCount>=a.min;
+  h+='<div class="achieve-card '+(unlocked?'':'locked')+'"><div class="ach-icon">'+a.e+'</div><div class="ach-name">'+a.t+'</div><div class="ach-desc">'+a.min+(a.max<99999?'-'+a.max:'+')+'</div></div>';
+});
+h+='</div>';
+
+// Special
+h+='<div class="section-title">🎖️ 特殊成就</div>';
+h+='<div class="achieve-grid">';
+SPECIAL_ACH.forEach(function(a){
+  var unlocked=a.check();
+  h+='<div class="achieve-card '+(unlocked?'':'locked')+'" onclick="showAchDetail(\''+a.id+'\')"><div class="ach-icon">'+(unlocked?a.e:'🔒')+'</div><div class="ach-name">'+a.t+'</div><div class="ach-desc">'+a.desc+'</div>'+(unlocked&&data.achievements[a.id]?'<div class="ach-date">'+data.achievements[a.id]+'</div>':'')+'</div>';
+});
+h+='</div>';
+return h;
+}
+
+function showAchDetail(id){var a=SPECIAL_ACH.find(function(x){return x.id===id;});if(!a)return;
+var unlocked=a.check();
+var h='<div style="text-align:center;padding:20px 0"><div style="font-size:48px;margin-bottom:8px">'+(unlocked?a.e:'🔒')+'</div><div style="font-size:20px;font-weight:900;margin-bottom:4px">'+a.t+'</div><div style="font-size:14px;color:var(--text2)">'+a.desc+'</div>';
+if(unlocked&&data.achievements[id])h+='<div style="font-size:12px;color:var(--text3);margin-top:8px">解锁于 '+data.achievements[id]+'</div>';
+h+='</div><div onclick="closeModal()" style="text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h,true);
+}
+
+function renderMe(){
+var p=data.profile;var displayName=p.name||'床边技师';var displayHosp=(p.hospital||p.dept)?(p.hospital+(p.dept?' · '+p.dept:'')):'点击设置个人信息';
+var bmi=p.height&&p.weight?((p.weight/Math.pow(p.height/100,2)).toFixed(1)):0;
+var bmiText=bmi?('BMI '+bmi+' ('+(bmi<18.5?'偏瘦':bmi<24?'正常':bmi<28?'偏胖':'肥胖')+')'):'';
+var h='<div class="view-header"><div class="view-title">我的</div></div>';
+h+='<div class="card" style="text-align:center;padding:24px;cursor:pointer" onclick="showEditProfile()"><div style="font-size:48px;margin-bottom:8px">👨‍⚕️</div><div style="font-size:20px;font-weight:900">'+displayName+'</div><div style="font-size:13px;color:var(--text2);margin-top:2px">'+displayHosp+'</div>';
+if(bmiText)h+='<div style="font-size:12px;color:var(--text3);margin-top:4px">'+p.height+'cm · '+p.weight+'kg · '+bmiText+'</div>';
+h+='<div style="font-size:11px;color:var(--green);margin-top:6px">点击编辑 ›</div></div>';
+
+h+='<div class="card" style="padding:16px;cursor:pointer;border-left:3px solid var(--green)" onclick="showDevLetter()"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:24px">💌</span><div><div style="font-size:15px;font-weight:800">开发者的一封信</div><div style="font-size:12px;color:var(--text2);margin-top:2px">来自 Lyon</div></div></div></div>';
+
+h+='<div class="card" style="padding:0;overflow:hidden">';
+var menuItems=[
+  {icon:'📏',label:'身体数据',action:'showBodyData()'},
+  {icon:'⭐',label:'常用床号管理',action:'showFavorites()'},
+  {icon:'📞',label:'科室快捷电话',action:'showContacts()'},
+  {icon:'📓',label:'个人备忘',action:'showNotes()'},
+  {icon:'📝',label:'交接班备忘',action:'showHandover()'},
+  {icon:'📐',label:'曝光参数速查',action:'showExposureRef()'},
+  {icon:'🏥',label:'楼层导航',action:'showFloorNav()'},
+  {icon:'📊',label:'月度报告',action:'showMonthReport()'},
+  {icon:'📖',label:'使用说明书',action:'showManual()'}
+];
+menuItems.forEach(function(item,i){
+  h+='<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;'+(i>0?'border-top:1px solid var(--border);':'')+'" onclick="'+item.action+'"><span style="font-size:20px">'+item.icon+'</span><span style="flex:1;font-size:15px;font-weight:600">'+item.label+'</span><span style="color:var(--text3)">›</span></div>';
+});
+h+='</div>';
+
+h+='<div class="card" style="padding:0;overflow:hidden">';
+h+='<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer" onclick="toggleTheme()"><span style="font-size:20px">'+(document.documentElement.classList.contains('dark')?'☀️':'🌙')+'</span><span style="flex:1;font-size:15px;font-weight:600">'+(document.documentElement.classList.contains('dark')?'浅色模式':'深色模式')+'</span></div>';
+h+='<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-top:1px solid var(--border)" onclick="confirmClear()"><span style="font-size:20px">🗑️</span><span style="flex:1;font-size:15px;font-weight:600;color:var(--red)">清除所有数据</span></div>';
+h+='</div>';
+
+h+='<div style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">v3.0 · Developed by Lyon<br>个人床边工作量记录工作站</div>';
+return h;
+}
+
+// ===== DEV LETTER =====
+function showDevLetter(){
+var h='<div style="padding:20px 0"><div style="text-align:center;margin-bottom:20px"><div style="font-size:40px">💌</div><div style="font-size:20px;font-weight:900;margin-top:8px">开发者的一封信</div></div>';
+h+='<div style="font-size:15px;line-height:2;color:var(--text)">';
+h+='<p>做这个 App 的原因很简单——每天推着移动DR在病房之间跑来跑去，拍完一个又一个，回头想想今天到底做了多少，脑子里一片空白。记不住，也说不清。</p>';
+h+='<p>我试过纸笔，试过备忘录，都不顺手。要么太麻烦，要么记了就忘。所以我自己写了一个——一个专门给床边技师用的工作助手。</p>';
+h+='<p>没有团队，没有融资，每个功能都来自真实的工作场景后想到的，批量录入是因为ICU经常一口气来十几个，卡路里计算是因为想知道自己每天到底消耗了多少体力，成就系统是因为……我觉得这份工作值得被记录。</p>';
+h+='<p>床边可能是放射科最累的活。推着上百公斤的机器爬上爬下，弯腰摆位，有时候还要面对不配合的患者、焦急的家属、催促的护士。没有人会特意感谢你拍了一张好片子，但每个人都离不开你。</p>';
+h+='<p>所以我想让这个 App 告诉你：<strong>你的每一床，都算数。</strong></p>';
+h+='<p>有想法或建议，随时告诉我。这个 App 会一直更新。</p>';
+h+='<p>希望你早日拿到「床边小王子」。🏆</p>';
+h+='</div>';
+h+='<div style="text-align:right;margin-top:20px;font-size:14px;color:var(--text2)">—— Lyon · 2026年4月</div>';
+h+='</div>';
+h+='<div onclick="closeModal()" style="text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px">关闭</div>';
+openModal(h,true);
+}
+
+
+// ===== EDIT PROFILE =====
+function showEditProfile(){
+var p=data.profile;
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">✏️ 编辑个人信息</div>';
+h+='<div class="form-row"><div class="form-label">昵称</div><input id="ep-name" class="form-input" placeholder="你的名字" value="'+(p.name||'')+'"></div>';
+h+='<div class="form-row"><div class="form-label">医院</div><input id="ep-hospital" class="form-input" placeholder="如 广东省中医院" value="'+(p.hospital||'')+'"></div>';
+h+='<div class="form-row"><div class="form-label">科室</div><input id="ep-dept" class="form-input" placeholder="如 放射科" value="'+(p.dept||'')+'"></div>';
+h+='<div class="form-row"><div class="form-label">身高 (cm)</div><input id="ep-height" class="form-input" type="number" placeholder="如 170" value="'+(p.height||'')+'"></div>';
+h+='<div class="form-row"><div class="form-label">体重 (kg)</div><input id="ep-weight" class="form-input" type="number" placeholder="如 65" value="'+(p.weight||'')+'"></div>';
+h+='<div style="padding:10px;background:var(--green3);border-radius:var(--radius3);font-size:12px;color:var(--green);margin-bottom:12px">💡 身高体重用于精确计算卡路里消耗，填写后体验更好</div>';
+h+='<button class="btn btn-green btn-full" onclick="saveEditProfile()">保存</button>';
+h+='<div onclick="closeModal()" style="margin-top:10px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">取消</div>';
+openModal(h);
+}
+function saveEditProfile(){
+data.profile.name=document.getElementById('ep-name').value.trim();
+data.profile.hospital=document.getElementById('ep-hospital').value.trim();
+data.profile.dept=document.getElementById('ep-dept').value.trim();
+data.profile.height=parseInt(document.getElementById('ep-height').value)||0;
+data.profile.weight=parseInt(document.getElementById('ep-weight').value)||0;
+saveData();closeModal();render();toast('✅ 已保存');
+}
+
+// ===== FIRST TIME ONBOARDING =====
+function showOnboarding(){
+var h='<div style="text-align:center;padding:20px 0"><div style="font-size:48px">🏥</div><div style="font-size:22px;font-weight:900;margin-top:8px">欢迎使用个人床边工作量记录工作站</div><div style="font-size:14px;color:var(--text2);margin-top:6px">一个专为床边技师打造的工作助手</div></div>';
+h+='<div class="form-row"><div class="form-label">你的名字</div><input id="ob-name" class="form-input" placeholder="怎么称呼你？"></div>';
+h+='<div class="form-row"><div class="form-label">医院</div><input id="ob-hospital" class="form-input" placeholder="如 广东省中医院"></div>';
+h+='<div class="form-row"><div class="form-label">科室</div><input id="ob-dept" class="form-input" placeholder="如 放射科"></div>';
+h+='<div class="form-row"><div class="form-label">身高 (cm)</div><input id="ob-height" class="form-input" type="number" placeholder="选填，用于卡路里计算"></div>';
+h+='<div class="form-row"><div class="form-label">体重 (kg)</div><input id="ob-weight" class="form-input" type="number" placeholder="选填，用于卡路里计算"></div>';
+h+='<button class="btn btn-green btn-full" onclick="finishOnboarding()">开始使用</button>';
+openModal(h,true);
+}
+function finishOnboarding(){
+data.profile.name=document.getElementById('ob-name').value.trim()||'床边技师';
+data.profile.hospital=document.getElementById('ob-hospital').value.trim();
+data.profile.dept=document.getElementById('ob-dept').value.trim();
+data.profile.height=parseInt(document.getElementById('ob-height').value)||0;
+data.profile.weight=parseInt(document.getElementById('ob-weight').value)||0;
+data._onboarded=true;saveData();closeModal();render();toast('🎉 设置完成！');
+}
+
+// ===== FLOOR NAVIGATION =====
+function showFloorNav(){
+var h='<div style="padding:10px 0"><div style="text-align:center;margin-bottom:16px"><div style="font-size:40px">🏥</div><div style="font-size:20px;font-weight:900;margin-top:8px">楼层导航</div><div style="font-size:13px;color:var(--text2);margin-top:4px">快速查找科室位置</div></div>';
+h+='<div style="position:relative;margin-bottom:14px"><input id="floor-search" class="form-input" placeholder="🔍 搜索科室名称..." oninput="filterFloors()" style="padding-left:36px"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px">🔍</span></div>';
+h+='<div id="floor-list" style="max-height:60vh;overflow-y:auto">';
+FLOORS.forEach(function(f){
+  var floorNum=parseInt(f.id);
+  var color=floorNum<=9?'var(--green)':floorNum<=19?'var(--blue)':floorNum<=24?'var(--orange)':'var(--red)';
+  h+='<div class="floor-item" data-name="'+f.name+'" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)">';
+  h+='<div style="min-width:40px;height:40px;border-radius:10px;background:'+color+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800">'+f.id+'</div>';
+  h+='<div style="flex:1"><div style="font-size:14px;font-weight:700">'+f.name+'</div></div>';
+  h+='</div>';
+});
+h+='</div></div>';
+h+='<div onclick="closeModal()" style="text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px">关闭</div>';
+openModal(h,true);
+setTimeout(function(){onFloorChange();},100);
+}
+function filterFloors(){
+var q=document.getElementById('floor-search').value.trim().toLowerCase();
+var items=document.querySelectorAll('#floor-list .floor-item');
+items.forEach(function(el){
+  var name=el.getAttribute('data-name').toLowerCase();
+  el.style.display=(!q||name.indexOf(q)>-1)?'flex':'none';
+});
+}
+
+// ===== USER MANUAL =====
+function showManual(){
+var h='<div style="padding:10px 0"><div style="text-align:center;margin-bottom:20px"><div style="font-size:40px">📖</div><div style="font-size:20px;font-weight:900;margin-top:8px">使用说明书</div></div>';
+var sections=[
+  {icon:'📋',title:'添加拍片任务',desc:'点击工作台「今日拍片清单」旁的「+ 添加」按钮。支持单个添加和批量添加两种模式。'},
+  {icon:'📦',title:'批量添加',desc:'切换到「批量添加」模式，楼层和部位只需选一次。选择楼层后科室自动填入。床号每行一个，支持连续格式如 8F-1~10，自动展开为1到10床。'},
+  {icon:'⭐',title:'常用床号',desc:'在「我的」→「常用床号管理」中收藏高频床号。添加任务时可以一键导入，不用重复输入。'},
+  {icon:'✅',title:'完成任务',desc:'点击任务右侧的 ○ 按钮标记完成，再次点击取消。点击任务卡片可以查看详情、设置图像质量和紧急标记。'},
+  {icon:'⚡',title:'快捷录入',desc:'工作台上的 +1/+2/+3/+5/+8/+10 按钮可以快速增加今日床边计数，适合批量拍完后一次性录入。'},
+  {icon:'⏱️',title:'工作计时',desc:'点击「开始计时」记录工作时长，支持暂停和重置。计时数据会影响卡路里计算。'},
+  {icon:'🔥',title:'卡路里计算',desc:'在「我的」→「身体数据」中填写身高体重，系统会根据 MET 代谢当量精确计算每日消耗，并换算成米饭和奶茶。'},
+  {icon:'🏆',title:'成就系统',desc:'分为月度成就、年度成就和特殊成就三类。月度和年度按累计床边数评定，特殊成就需要完成特定挑战。'},
+  {icon:'📅',title:'排班管理',desc:'在「排班」页面点击日期设置班次（白班/夜班/休息）。排班数据会影响统计和收入计算。'},
+  {icon:'📝',title:'交接班备忘',desc:'记录未完成的任务和需要跟进的事项，下次打开 App 自动显示提醒。'},
+  {icon:'📞',title:'科室快捷电话',desc:'在「我的」→「科室快捷电话」中保存各科室联系方式，随时查看。'},
+  {icon:'📐',title:'曝光参数速查',desc:'常见部位的 kV/mAs/SID 参考值卡片，遇到不常见的体型可以快速查阅。'},
+  {icon:'🏥',title:'楼层导航',desc:'在「我的」→「楼层导航」中查看全院 6F~29F 的科室分布。支持搜索，输入科室名即可快速定位楼层。'},
+  {icon:'📊',title:'月度报告',desc:'自动生成本月工作量、收入、日均等数据汇总，截图即可汇报。'},
+  {icon:'🌙',title:'深色模式',desc:'在「我的」页面底部切换深色/浅色模式，夜间使用更护眼。'}
+];
+sections.forEach(function(s){
+  h+='<div class="report-card" style="margin-bottom:10px"><h3>'+s.icon+' '+s.title+'</h3><div style="font-size:13px;color:var(--text2);line-height:1.6">'+s.desc+'</div></div>';
+});
+h+='</div>';
+h+='<div onclick="closeModal()" style="text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px">关闭</div>';
+openModal(h,true);
+}
+
+// ===== UTILITY =====
+function chMonth(d){var ym=state.calMonth||today().slice(0,7);var p=ym.split('-').map(Number);var dt=new Date(p[0],p[1]-1+d,1);state.calMonth=dt.toISOString().slice(0,7);render();}
+function setShift(ds){
+var l=getLog(ds);var shifts=['day','night','rest'];var labels=['白班','夜班','休息'];
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">'+fmtDate(ds)+' 班次</div>';
+shifts.forEach(function(s,i){
+  h+='<div style="display:flex;align-items:center;gap:12px;padding:14px;background:'+(l.shift===s?'var(--green3)':'var(--card2)')+';border-radius:var(--radius3);margin-bottom:8px;cursor:pointer" onclick="getLog(\''+ds+'\').shift=\''+s+'\';saveData();closeModal();render();">';
+  h+='<span style="font-size:20px">'+({day:'☀️',night:'🌙',rest:'😴'}[s])+'</span><span style="flex:1;font-size:15px;font-weight:700">'+labels[i]+'</span>';
+  if(l.shift===s)h+='<span style="color:var(--green);font-weight:700">✓</span>';
+  h+='</div>';});
+h+='<div onclick="closeModal()" style="margin-top:12px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">取消</div>';
+openModal(h);
+}
+function showDayDetail(ds){
+var l=data.logs[ds];if(!l){toast('该日无记录');return;}
+var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">'+fmtDate(ds)+' 详情</div>';
+h+='<div class="report-card"><h3>班次</h3><div class="report-row"><span class="label">类型</span><span class="value">'+({day:'白班',night:'夜班',rest:'休息'}[l.shift]||'未知')+'</span></div>';
+h+='<div class="report-row"><span class="label">床边数</span><span class="value">'+(l.count||0)+'</span></div>';
+h+='<div class="report-row"><span class="label">收入</span><span class="value">¥'+((l.count||0)*(l.taxMode?0.6:1)*30)+'</span></div></div>';
+if(l.patients&&l.patients.length){
+  h+='<div class="report-card"><h3>任务明细</h3>';
+  l.patients.forEach(function(p){h+='<div class="report-row"><span class="label">'+p.bed+' '+p.floor+'</span><span class="value">'+(p.status==='done'?'✅ '+p.time:'⏳')+'</span></div>';});
+  h+='</div>';}
+h+='<div onclick="closeModal()" style="margin-top:12px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
+openModal(h,true);
+}
+function confirmClear(){
+var h='<div style="text-align:center;padding:20px 0"><div style="font-size:40px;margin-bottom:8px">⚠️</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">确认清除所有数据？</div><div style="font-size:14px;color:var(--text2)">此操作不可恢复</div></div>';
+h+='<div style="display:flex;gap:8px"><button class="btn btn-red" style="flex:1" onclick="localStorage.removeItem(\'gdhtcm_data\');location.reload()">确认清除</button>';
+h+='<button class="btn btn-outline" style="flex:1" onclick="closeModal()">取消</button></div>';
+openModal(h,true);
+}
+
+// ===== CHECK ACHIEVEMENTS =====
+function checkAchievements(){
+SPECIAL_ACH.forEach(function(a){
+  if(!data.achievements[a.id]&&a.check()){
+    data.achievements[a.id]=new Date().toLocaleString('zh-CN');
+    toast('🎉 解锁成就：'+a.t);
+  }
+});
+saveData();
+}
+
+// ===== INIT =====
+(function(){
+  loadData();
+  applyTheme();
+  state.calMonth=today().slice(0,7);
+  state.addMode='single';
+  setTimeout(function(){
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('app').classList.add('show');
+    render();
+    if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
+  },2500);
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+  document.addEventListener('visibilitychange',function(){if(document.hidden){saveData();checkAchievements();}});
+  setInterval(checkAchievements,60000);
+})();
+</script>
+</body>
+</html>
