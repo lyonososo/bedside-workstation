@@ -834,7 +834,7 @@ h+='</div>';
 
 h+='<div class="card" style="padding:0;overflow:hidden">';
 h+='<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer" onclick="toggleTheme()"><span style="font-size:20px">'+(document.documentElement.classList.contains('dark')?'☀️':'🌙')+'</span><span style="flex:1;font-size:15px;font-weight:600">'+(document.documentElement.classList.contains('dark')?'浅色模式':'深色模式')+'</span></div>';
-h+='<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-top:1px solid var(--border)" onclick="confirmClear()"><span style="font-size:20px">🗑️</span><span style="flex:1;font-size:15px;font-weight:600;color:var(--red)">清除所有数据</span></div>';
+
 h+='<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-top:1px solid var(--border)" onclick="doReset()"><span style="font-size:20px">🔄</span><span style="flex:1;font-size:15px;font-weight:600;color:var(--orange)">还原数据（归零）</span></div>';
 h+='</div>';
 
@@ -987,14 +987,7 @@ if(l.patients&&l.patients.length){
 h+='<div onclick="closeModal()" style="margin-top:12px;text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer">关闭</div>';
 openModal(h,true);
 }
-function doClear(){localStorage.clear();sessionStorage.clear();closeModal();setTimeout(function(){location.reload()},50)}
 function doReset(){data.logs={};data.profile={name:'',height:0,weight:0,hospital:'',dept:''};data.favorites=[];data.contacts=[{name:'ICU',phone:'',icon:'🏥'},{name:'急诊科',phone:'',icon:'🚑'},{name:'3F 外科',phone:'',icon:'🔪'}];data.notes=[];data.handover='';data.achievements={};saveData();closeModal();render();toast('✅ 已还原所有数据')}
-function confirmClear(){
-var h='<div style="text-align:center;padding:20px 0"><div style="font-size:40px;margin-bottom:8px">⚠️</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">确认清除所有数据？</div><div style="font-size:14px;color:var(--text2)">此操作不可恢复</div></div>';
-h+='<div style="display:flex;gap:8px"><button class="btn btn-red" style="flex:1" onclick="doClear()">确认清除</button>';
-h+='<button class="btn btn-outline" style="flex:1" onclick="closeModal()">取消</button></div>';
-openModal(h,true);
-}
 
 // ===== CHECK ACHIEVEMENTS =====
 function checkAchievements(){
