@@ -220,33 +220,20 @@ async function handleLogin(){
   var btn=document.getElementById('login-btn');
   if(!name){errEl.textContent='请输入姓名';return;}
   if(!pwd||pwd.length<4){errEl.textContent='密码至少4位';return;}
-  errEl.textContent='';btn.disabled=true;btn.textContent='登录中...';
-  try{
-    var hash=_hashPwd(pwd);
-    var userId=crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,function(c){return(c^(crypto.getRandomValues(new Uint8Array(1))[0]&(15>>(c/4)))).toString(16)});
-    // check if profile exists in cloud
-    var{data:existing}=await _sb.from('profiles').select('id,name').eq('id',userId).maybeSingle();
-    // check local password
-    var localUsers=JSON.parse(localStorage.getItem('gdhtcm_users')||'{}');
-    if(existing){
-      if(localUsers[userId]&&localUsers[userId]!==hash){errEl.textContent='密码错误';btn.disabled=false;btn.textContent='登录 / 注册';return;}
-      _currentUser={id:userId,name:name};
-      localUsers[userId]=hash;localStorage.setItem('gdhtcm_users',JSON.stringify(localUsers));
-    }else{
-      // register
-      var{error:insErr}=await _sb.from('profiles').insert({id:userId,name:name,title:'初级技师'});
-      if(insErr)throw insErr;
-      _currentUser={id:userId,name:name};
-      localUsers[userId]=hash;localStorage.setItem('gdhtcm_users',JSON.stringify(localUsers));
-    }
-    data.profile.name=name;
-    saveData();
-    _enterApp();
-  }catch(e){
-    errEl.textContent='登录失败，请重试';
-    console.error(e);
+  var hash=_hashPwd(pwd);
+  var users=JSON.parse(localStorage.getItem('gdhtcm_users')||'{}');
+  var uid='user_'+name;
+  if(users[uid]){
+    if(users[uid]!==hash){errEl.textContent='密码错误';return;}
+    _currentUser={id:uid,name:name};
+  }else{
+    users[uid]=hash;
+    localStorage.setItem('gdhtcm_users',JSON.stringify(users));
+    _currentUser={id:uid,name:name};
   }
-  btn.disabled=false;btn.textContent='登录 / 注册';
+  data.profile.name=name;
+  saveData();
+  _enterApp();
 }
 
 function _enterApp(){localStorage.setItem('gdhtcm_user',JSON.stringify(_currentUser));
@@ -261,14 +248,8 @@ function _enterApp(){localStorage.setItem('gdhtcm_user',JSON.stringify(_currentU
 async function _loadFromCloud(){
   if(!_sb||!_currentUser)return;
   try{
-    var[profileRes,logsRes]=await Promise.all([
-      _sb.from('profiles').select('*').eq('id',_currentUser.id).single(),
-      _sb.from('daily_logs').select('*').eq('user_id',_currentUser.id).order('date')
-    ]);
-    if(profileRes.data){
-      var p=profileRes.data;
-      if(p.name)data.profile.name=p.name;
-    }
+    var logsRes=await _sb.from('daily_logs').select('*').eq('user_id',_currentUser.id).order('date');
+    if(logsRes.data){
     if(logsRes.data){
       logsRes.data.forEach(function(log){
         var existing=data.logs[log.date];
@@ -293,9 +274,6 @@ async function _syncToCloud(){
   if(!_sb||!_currentUser||_isSyncing)return;
   _isSyncing=true;_updateSyncDot('syncing');
   try{
-    await _sb.from('profiles').upsert({
-      id:_currentUser.id,name:data.profile.name||'',title:'初级技师'
-    },{onConflict:'id'});
     var dates=Object.keys(data.logs);
     for(var i=0;i<dates.length;i++){
       var dk=dates[i],log=data.logs[dk];
