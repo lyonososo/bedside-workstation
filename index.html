@@ -201,7 +201,9 @@ var _deviceEmail=null;
 
 function _genUUID(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 
+var _CODE_VERSION="v2026.04.22.6";
 function _initSB(){
+  console.log("Workstation version:",_CODE_VERSION,"user:",_currentUser.id);
   var saved=localStorage.getItem('gdhtcm_user');
   if(saved){try{var u=JSON.parse(saved);if(u.id)_currentUser.id=u.id;if(u.name)_currentUser.name=u.name;if(u.email)_deviceEmail=u.email;}catch(e){}}
   if(!_currentUser.id||!_deviceEmail){
