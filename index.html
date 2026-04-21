@@ -187,6 +187,26 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
 
 <script>
 
+// ===== INIT (no login) =====
+var _currentUser={id:'local',name:'技师'};
+function _initSB(){
+  var saved=localStorage.getItem('gdhtcm_user');
+  if(saved){try{_currentUser=JSON.parse(saved);}catch(e){}}
+  _enterApp();
+}
+function _enterApp(){
+  document.getElementById('app').classList.add('show');
+  render();
+  if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
+  fetchWeather();
+}
+function _queueSync(){}
+function _loadFromCloud(){return Promise.resolve();}
+function _updateSyncDot(){}
+async function handleLogout(){
+  openModal('<div style="text-align:center;padding:16px 0"><div style="font-size:44px;margin-bottom:10px">👋</div><div style="font-size:17px;font-weight:800;margin-bottom:6px">确认清除所有数据？</div><div style="font-size:13px;color:var(--text2,#8E8E93);margin-bottom:16px">此操作不可恢复</div><div style="display:flex;gap:8px"><button class="btn btn-outline" style="flex:1" onclick="closeModal()">取消</button><button class="btn btn-danger" style="flex:1" onclick="localStorage.clear();location.reload()">清除</button></div></div>');
+}
+
 var FLOORS=[{id:'6F',name:'手术室'},{id:'8F',name:'重症医学科(ICU)'},{id:'9F',name:'静脉配置中心 输血科'},{id:'10F',name:'脊柱微创科'},{id:'11F',name:'老年骨折科 运动医学科'},{id:'12F',name:'创伤足踝科 膝骨关节病科'},{id:'13F',name:'外四科(胰腺中心) 外五科(肛肠科)'},{id:'14F',name:'外二科(胃肠外科) 外三科(结直肠外科)'},{id:'15F',name:'乳腺一科(乳腺修复整形科) 乳腺二科(乳腺肿瘤科)'},{id:'16F',name:'妇科'},{id:'17F',name:'肝胆外科'},{id:'18F',name:'耳鼻咽喉头颈科 眼科'},{id:'19F',name:'儿科 皮肤科'},{id:'20F',name:'神经内科 介入科'},{id:'21F',name:'脾胃病科 内分泌科'},{id:'22F',name:'针灸科'},{id:'23F',name:'肾病科'},{id:'24F',name:'呼吸病科(PCCM) 心胸外科'},{id:'25F',name:'神经外科 神经重症科'},{id:'26F',name:'心血管科 心律失常科'},{id:'27F',name:'脑血管病科'},{id:'28F',name:'肿瘤科'},{id:'29F',name:'血液科'}];
 var MARKERS=['肥胖','水肿','骨科固定物','不能配合','婴幼儿','引流管','起搏器'];
 var QUALITY_LABELS=['','⭐ 一般','⭐⭐ 良好','⭐⭐⭐ 优秀'];
