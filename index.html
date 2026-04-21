@@ -231,8 +231,11 @@ async function handleLogin(){
       try{
         var{error:signUpErr}=await _sb.auth.signUp({email:email,password:pwd});
         if(signUpErr)throw signUpErr;
-        errEl.style.color='var(--green,#006B3F)';errEl.textContent='✅ 注册成功！已自动登录';
-        btn.disabled=false;btn.textContent='登录 / 注册';
+        errEl.style.color='var(--green,#006B3F)';errEl.textContent='✅ 注册成功！';
+        try{
+          var{data:loginData,error:loginErr}=await _sb.auth.signInWithPassword({email:email,password:pwd});
+          if(loginErr)throw loginErr;
+        }catch(e3){}
         return;
       }catch(e2){
         var msg2=(e2.message||'').toLowerCase();
