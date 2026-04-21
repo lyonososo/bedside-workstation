@@ -1164,22 +1164,15 @@ saveData();
   state.addMode='single';
   try{var savedCampus=localStorage.getItem('gdhtcm_campus');if(savedCampus)state.campus=savedCampus;}catch(e){}
   try{state.showTaxIncome=localStorage.getItem('gdhtcm_tax')==='1';}catch(e){}
-  _checkSession().then(function(loggedIn){
-    if(loggedIn){
-      document.getElementById('login-page').classList.add('hide');
-      document.getElementById('splash').classList.add('hide');
-      document.getElementById('app').classList.add('show');
-      render();
-      if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
-      fetchWeather();
-      _loadFromCloud().then(function(){render();});
-    }else{
-      setTimeout(function(){
-        document.getElementById('splash').classList.add('hide');
-        document.getElementById('login-page').style.display='flex';
-      },2500);
-    }
-  });
+  // Skip login, go straight to app
+  setTimeout(function(){
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('app').classList.add('show');
+    render();
+    if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
+    fetchWeather();
+    _loadFromCloud().then(function(){render();});
+  },1500);
   // Auth handled by simple name+password login
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
   document.addEventListener('visibilitychange',function(){if(document.hidden){saveData();checkAchievements();}});
