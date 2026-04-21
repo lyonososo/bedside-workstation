@@ -988,7 +988,7 @@ openModal(h,true);
 }
 function confirmClear(){
 var h='<div style="text-align:center;padding:20px 0"><div style="font-size:40px;margin-bottom:8px">⚠️</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">确认清除所有数据？</div><div style="font-size:14px;color:var(--text2)">此操作不可恢复</div></div>';
-h+='<div style="display:flex;gap:8px"><button class="btn btn-red" style="flex:1" onclick="localStorage.clear();location.href=location.href.split('?')[0]+'?t='+Date.now()">确认清除</button>';
+h+='<div style="display:flex;gap:8px"><button class="btn btn-red" style="flex:1" onclick="localStorage.clear();location.reload()">确认清除</button>';
 h+='<button class="btn btn-outline" style="flex:1" onclick="closeModal()">取消</button></div>';
 openModal(h,true);
 }
