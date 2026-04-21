@@ -179,7 +179,7 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
 </style>
 </head>
 <body>
-<div id="login-page">
+<div id="login-page" class="hide">
   <div class="login-logo">🏥</div>
   <div class="login-title">个人床边工作站</div>
   <div class="login-sub">广东省中医院 · 放射科<br>请登录以同步数据到云端</div>
@@ -192,7 +192,7 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
   </div>
 </div>
 <div id="splash"><div class="logo">🏥</div><h1>个人床边工作量记录工作站</h1><p>v3.0 Cloud · Lyon <span id="sync-dot" class="sync-dot ok"></span></p></div>
-<div id="app"></div>
+<div id="app" class="show"></div>
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()"><div class="modal-sheet" id="modal-content"></div></div>
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -207,6 +207,13 @@ var _isSyncing=false;
 
 function _initSB(){
   try{_sb=window.supabase.createClient(_SB_URL,_SB_KEY);}catch(e){console.warn('Supabase init failed:',e);}
+  // Auto-login with device ID
+  var saved=localStorage.getItem('gdhtcm_user');
+  if(saved){try{_currentUser=JSON.parse(saved);}catch(e){}}
+  if(!_currentUser){
+    _currentUser={id:'device_'+Date.now(),name:'技师'};
+    localStorage.setItem('gdhtcm_user',JSON.stringify(_currentUser));
+  }
 }
 
 
