@@ -323,7 +323,7 @@ async function handleLogout(){
   openModal('<div style="text-align:center;padding:16px 0"><div style="font-size:44px;margin-bottom:10px">👋</div><div style="font-size:17px;font-weight:800;margin-bottom:6px">确认退出登录？</div><div style="font-size:13px;color:var(--text2,#8E8E93);margin-bottom:16px">数据已保存在云端，下次登录自动同步</div><div style="display:flex;gap:8px"><button class="btn btn-outline" style="flex:1" onclick="closeModal()">取消</button><button class="btn btn-danger" style="flex:1" onclick="_doLogout()">退出</button></div></div>');
 }
 async function _doLogout(){
-  try{await _sb.// auth.signOut();}catch(e){}
+  try{await // no auth;}catch(e){}
   _currentUser=null;
   closeModal();
   document.getElementById('login-page').classList.remove('hide');
