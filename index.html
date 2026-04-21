@@ -166,7 +166,13 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
 var FLOORS=[{id:'6F',name:'手术室'},{id:'8F',name:'重症医学科(ICU)'},{id:'9F',name:'静脉配置中心 输血科'},{id:'10F',name:'脊柱微创科'},{id:'11F',name:'老年骨折科 运动医学科'},{id:'12F',name:'创伤足踝科 膝骨关节病科'},{id:'13F',name:'外四科(胰腺中心) 外五科(肛肠科)'},{id:'14F',name:'外二科(胃肠外科) 外三科(结直肠外科)'},{id:'15F',name:'乳腺一科(乳腺修复整形科) 乳腺二科(乳腺肿瘤科)'},{id:'16F',name:'妇科'},{id:'17F',name:'肝胆外科'},{id:'18F',name:'耳鼻咽喉头颈科 眼科'},{id:'19F',name:'儿科 皮肤科'},{id:'20F',name:'神经内科 介入科'},{id:'21F',name:'脾胃病科 内分泌科'},{id:'22F',name:'针灸科'},{id:'23F',name:'肾病科'},{id:'24F',name:'呼吸病科(PCCM) 心胸外科'},{id:'25F',name:'神经外科 神经重症科'},{id:'26F',name:'心血管科 心律失常科'},{id:'27F',name:'脑血管病科'},{id:'28F',name:'肿瘤科'},{id:'29F',name:'血液科'}];
 var MARKERS=['肥胖','水肿','骨科固定物','不能配合','婴幼儿','引流管','起搏器'];
 var QUALITY_LABELS=['','⭐ 一般','⭐⭐ 良好','⭐⭐⭐ 优秀'];
-var state={tab:'work',calMonth:'',addMode:'single'};
+var CAMPUSES=[
+  {id:'dade',name:'大德路总院',lat:23.1289,lon:113.2589},
+  {id:'ersha',name:'二沙岛院区',lat:23.1111,lon:113.3056},
+  {id:'daxuecheng',name:'大学城院区',lat:23.0556,lon:113.3861},
+  {id:'fangcun',name:'芳村院区',lat:23.0833,lon:113.2333}
+];
+var state={tab:'work',calMonth:'',addMode:'single',campus:'dade',weather:null};
 var data={logs:{},profile:{name:'',height:0,weight:0,hospital:'',dept:''},favorites:[],contacts:[{name:'ICU',phone:'',icon:'🏥'},{name:'急诊科',phone:'',icon:'🚑'},{name:'3F 外科',phone:'',icon:'🔪'}],notes:[],handover:'',achievements:{}};
 
 function today(){return new Date().toISOString().slice(0,10);}
@@ -504,6 +510,66 @@ h+='<div onclick="closeModal()" style="margin-top:12px;text-align:center;padding
 openModal(h,true);
 }
 
+// ===== WEATHER =====
+function fetchWeather(){
+  var c=CAMPUSES.find(function(x){return x.id===state.campus;});
+  if(!c)return;
+  var url='https://wttr.in/'+c.lat+','+c.lon+'?format=j1';
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    if(d&&d.current_condition&&d.current_condition[0]){
+      var cur=d.current_condition[0];
+      var w={temp:cur.temp_C,humidity:cur.humidity,desc:cur.lang_zh&&cur.lang_zh[0]?cur.lang_zh[0].value:cur.weatherDesc[0].value,wind:cur.windspeedKmph,feels:cur.FeelsLikeC,icon:getWeatherIcon(cur.weatherCode)};
+      state.weather=w;
+      var el=document.getElementById('weather-bar');
+      if(el)el.outerHTML=renderWeatherBar();
+    }
+  }).catch(function(){});
+}
+function getWeatherIcon(code){
+  code=parseInt(code);
+  if(code===113)return'☀️';if(code===116)return'⛅';if(code<=119)return'🌥️';
+  if(code<=122)return'☁️';if(code<=200)return'🌧️';if(code<=232)return'⛈️';
+  if(code<=260)return'🌨️';if(code<=282)return'🌧️';if(code<=284)return'❄️';
+  if(code<=320)return'🌧️';if(code<=395)return'🌨️';return'🌤️';
+}
+function renderWeatherBar(){
+  var c=CAMPUSES.find(function(x){return x.id===state.campus;});
+  var w=state.weather;
+  var h='<div id="weather-bar" class="card animate-in" style="padding:10px 14px;margin-bottom:12px;cursor:pointer" onclick="showCampusPicker()">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between">';
+  h+='<div style="display:flex;align-items:center;gap:8px">';
+  if(w){
+    h+='<span style="font-size:24px">'+w.icon+'</span>';
+    h+='<div><div style="font-size:14px;font-weight:700;color:var(--text)">'+w.temp+'°C <span style="font-weight:400;color:var(--text2)">'+w.desc+'</span></div>';
+    h+='<div style="font-size:11px;color:var(--text3)">体感 '+w.feels+'°C · 湿度 '+w.humidity+'% · 风速 '+w.wind+'km/h</div></div>';
+  }else{
+    h+='<span style="font-size:18px">🌤️</span>';
+    h+='<div style="font-size:13px;color:var(--text2)">加载天气中...</div>';
+  }
+  h+='</div>';
+  h+='<div style="display:flex;align-items:center;gap:4px"><span style="font-size:12px;color:var(--text3)">📍</span><span style="font-size:13px;font-weight:600;color:var(--green)">'+c.name+'</span><span style="color:var(--text3);font-size:12px">▼</span></div>';
+  h+='</div></div>';
+  return h;
+}
+function showCampusPicker(){
+  var h='<div style="font-size:18px;font-weight:800;margin-bottom:14px">📍 选择院区</div>';
+  CAMPUSES.forEach(function(c){
+    var active=state.campus===c.id;
+    h+='<div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;margin-bottom:8px;cursor:pointer;'+(active?'background:var(--green3);border:2px solid var(--green)':'background:var(--card2);border:2px solid transparent')+'" onclick="switchCampus(\''+c.id+'\')">';
+    h+='<div style="width:40px;height:40px;border-radius:10px;background:'+(active?'var(--green)':'var(--card)')+';color:'+(active?'#fff':'var(--text2)')+';display:flex;align-items:center;justify-content:center;font-size:18px">📍</div>';
+    h+='<div style="flex:1"><div style="font-size:15px;font-weight:700;color:'+(active?'var(--green)':'var(--text)')+'">'+c.name+'</div></div>';
+    if(active)h+='<span style="color:var(--green);font-size:18px">✓</span>';
+    h+='</div>';
+  });
+  h+='<div onclick="closeModal()" style="text-align:center;padding:10px;border-radius:12px;background:var(--card2);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px">取消</div>';
+  openModal(h);
+}
+function switchCampus(id){
+  state.campus=id;state.weather=null;
+  try{localStorage.setItem('gdhtcm_campus',id);}catch(e){}
+  closeModal();render();fetchWeather();
+}
+
 // ===== RENDER =====
 function render(){
 var app=document.getElementById('app');
@@ -536,6 +602,9 @@ var cal=calcCalorie();var done=pts.filter(function(p){return p.status==='done';}
 var pct=pts.length?Math.round(done/pts.length*100):0;
 
 var h='<div class="view-header"><div class="view-title">工作台</div><div class="view-subtitle">'+fmtDate(td)+' · '+({day:'白班',night:'夜班',rest:'休息'}[log.shift]||'未设置')+'</div></div>';
+
+// Weather bar
+h+=renderWeatherBar();
 
 // Stats grid
 h+='<div class="stat-grid animate-in"><div class="stat-item"><div class="stat-value" style="color:var(--green)">'+(log.count||0)+'</div><div class="stat-label">今日床边</div></div>';
@@ -935,11 +1004,13 @@ saveData();
   applyTheme();
   state.calMonth=today().slice(0,7);
   state.addMode='single';
+  try{var savedCampus=localStorage.getItem('gdhtcm_campus');if(savedCampus)state.campus=savedCampus;}catch(e){}
   setTimeout(function(){
     document.getElementById('splash').classList.add('hide');
     document.getElementById('app').classList.add('show');
     render();
     if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
+    fetchWeather();
   },2500);
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
   document.addEventListener('visibilitychange',function(){if(document.hidden){saveData();checkAchievements();}});
