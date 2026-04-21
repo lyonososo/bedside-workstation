@@ -223,7 +223,7 @@ async function handleLogin(){
   errEl.textContent='';btn.disabled=true;btn.textContent='登录中...';
   try{
     var hash=_hashPwd(pwd);
-    var userId=name.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+hash.slice(0,6);
+    var userId=crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,function(c){return(c^(crypto.getRandomValues(new Uint8Array(1))[0]&(15>>(c/4)))).toString(16)});
     // check if profile exists in cloud
     var{data:existing}=await _sb.from('profiles').select('id,name').eq('id',userId).maybeSingle();
     // check local password
