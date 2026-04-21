@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="个人床边工作量记录工作站">
 <meta name="theme-color" content="#006B3F">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><title>个人床边工作量记录工作站</title>
+<title>个人床边工作量记录工作站</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{--green:#006B3F;--green2:#00875A;--green3:rgba(0,107,63,.08);--red:#C41230;--red2:#FF3B30;--orange:#FF9500;--blue:#007AFF;--purple:#AF52DE;--teal:#5AC8FA;--pink:#FF2D55;--bg:#F2F2F7;--card:rgba(255,255,255,.78);--card2:rgba(255,255,255,.5);--card-solid:#FFFFFF;--input:rgba(242,242,247,.8);--text:#1C1C1E;--text2:#8E8E93;--text3:#AEAEB2;--border:rgba(0,0,0,.06);--shadow:0 2px 16px rgba(0,0,0,.06);--shadow2:0 8px 32px rgba(0,0,0,.1);--radius:20px;--radius2:14px;--radius3:10px;--safe-top:env(safe-area-inset-top,20px);--safe-bottom:env(safe-area-inset-bottom,0px);--glass:rgba(255,255,255,.65);--glass-border:rgba(255,255,255,.3);--blur:blur(20px);--tab-h:56px}
@@ -195,6 +195,7 @@ body{background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 30%,#fff8e1 100%)}
 <div id="app"></div>
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()"><div class="modal-sheet" id="modal-content"></div></div>
 <div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ===== SUPABASE CLOUD SYNC =====
 var _SB_URL='https://uzcijftcckvyfirlhtci.supabase.co';
@@ -323,7 +324,7 @@ async function handleLogout(){
   openModal('<div style="text-align:center;padding:16px 0"><div style="font-size:44px;margin-bottom:10px">👋</div><div style="font-size:17px;font-weight:800;margin-bottom:6px">确认退出登录？</div><div style="font-size:13px;color:var(--text2,#8E8E93);margin-bottom:16px">数据已保存在云端，下次登录自动同步</div><div style="display:flex;gap:8px"><button class="btn btn-outline" style="flex:1" onclick="closeModal()">取消</button><button class="btn btn-danger" style="flex:1" onclick="_doLogout()">退出</button></div></div>');
 }
 async function _doLogout(){
-  try{await // no auth;}catch(e){}
+  // no auth
   _currentUser=null;
   closeModal();
   document.getElementById('login-page').classList.remove('hide');
@@ -334,6 +335,9 @@ async function _doLogout(){
   document.getElementById('login-btn').textContent='登录 / 注册';
 }
 
+
+</script>
+<script>
 
 var FLOORS=[{id:'6F',name:'手术室'},{id:'8F',name:'重症医学科(ICU)'},{id:'9F',name:'静脉配置中心 输血科'},{id:'10F',name:'脊柱微创科'},{id:'11F',name:'老年骨折科 运动医学科'},{id:'12F',name:'创伤足踝科 膝骨关节病科'},{id:'13F',name:'外四科(胰腺中心) 外五科(肛肠科)'},{id:'14F',name:'外二科(胃肠外科) 外三科(结直肠外科)'},{id:'15F',name:'乳腺一科(乳腺修复整形科) 乳腺二科(乳腺肿瘤科)'},{id:'16F',name:'妇科'},{id:'17F',name:'肝胆外科'},{id:'18F',name:'耳鼻咽喉头颈科 眼科'},{id:'19F',name:'儿科 皮肤科'},{id:'20F',name:'神经内科 介入科'},{id:'21F',name:'脾胃病科 内分泌科'},{id:'22F',name:'针灸科'},{id:'23F',name:'肾病科'},{id:'24F',name:'呼吸病科(PCCM) 心胸外科'},{id:'25F',name:'神经外科 神经重症科'},{id:'26F',name:'心血管科 心律失常科'},{id:'27F',name:'脑血管病科'},{id:'28F',name:'肿瘤科'},{id:'29F',name:'血液科'}];
 var MARKERS=['肥胖','水肿','骨科固定物','不能配合','婴幼儿','引流管','起搏器'];
