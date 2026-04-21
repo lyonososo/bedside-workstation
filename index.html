@@ -250,7 +250,6 @@ async function _loadFromCloud(){
   try{
     var logsRes=await _sb.from('daily_logs').select('*').eq('user_id',_currentUser.id).order('date');
     if(logsRes.data){
-    if(logsRes.data){
       logsRes.data.forEach(function(log){
         var existing=data.logs[log.date];
         if(!existing){
