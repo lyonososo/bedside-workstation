@@ -223,19 +223,28 @@ async function handleLogin(){
   if(!pwd||pwd.length<6){errEl.textContent='密码至少6位';return;}
   errEl.textContent='';btn.disabled=true;btn.textContent='登录中...';
   try{
-    var{error}=await _sb.auth.signInWithPassword({email:email,password:pwd});
+    var{data,error}=await _sb.auth.signInWithPassword({email:email,password:pwd});
     if(error)throw error;
   }catch(e){
-    if(e.message&&e.message.indexOf('Invalid login')>=0){
+    var msg=(e.message||'').toLowerCase();
+    if(msg.indexOf('invalid login')>=0||msg.indexOf('invalid credentials')>=0||msg.indexOf('not found')>=0){
       try{
         var{error:signUpErr}=await _sb.auth.signUp({email:email,password:pwd});
         if(signUpErr)throw signUpErr;
         errEl.style.color='var(--green,#006B3F)';errEl.textContent='✅ 注册成功！已自动登录';
         btn.disabled=false;btn.textContent='登录 / 注册';
         return;
-      }catch(e2){errEl.style.color='var(--red2,#FF3B30)';errEl.textContent=e2.message||'注册失败';btn.disabled=false;btn.textContent='登录 / 注册';return;}
+      }catch(e2){
+        var msg2=(e2.message||'').toLowerCase();
+        if(msg2.indexOf('rate limit')>=0||msg2.indexOf('too many')>=0){errEl.textContent='操作太频繁，请等1分钟再试';}
+        else if(msg2.indexOf('already registered')>=0||msg2.indexOf('already been')>=0){errEl.textContent='该邮箱已注册，请直接登录';}
+        else{errEl.textContent='注册失败：'+e2.message;}
+        btn.disabled=false;btn.textContent='登录 / 注册';return;
+      }
     }
-    errEl.style.color='var(--red2,#FF3B30)';errEl.textContent=e.message||'登录失败';
+    if(msg.indexOf('rate limit')>=0||msg.indexOf('too many')>=0){errEl.textContent='操作太频繁，请等1分钟再试';}
+    else if(msg.indexOf('email not confirmed')>=0){errEl.textContent='邮箱未验证，请检查收件箱';}
+    else{errEl.textContent='登录失败，请检查邮箱和密码';}
   }
   btn.disabled=false;btn.textContent='登录 / 注册';
 }
