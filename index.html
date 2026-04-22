@@ -276,9 +276,9 @@ async function _syncToCloud(){
     var dates=Object.keys(data.logs);
     for(var i=0;i<dates.length;i++){
       var dk=dates[i],log=data.logs[dk];
-      await fetch(_SB_URL+'/rest/v1/daily_logs',{
-        method:'POST',headers:_sbHeaders,
-        body:JSON.stringify({user_id:_currentUser.id,date:dk,shift:log.shift,count:log.count||0,tax_mode:!!log.taxMode,meal_break:log.mealBreak||null})
+      await fetch(_SB_URL+'/rest/v1/daily_logs?user_id=eq.'+_currentUser.id+'&date=eq.'+dk,{
+        method:'PATCH',headers:_sbHeaders,
+        body:JSON.stringify({shift:log.shift,count:log.count||0,tax_mode:!!log.taxMode,meal_break:log.mealBreak||null})
       });
     }
     var _syncName=_currentUser.name||((data&&data.profile)?data.profile.name:null);if(_syncName){
