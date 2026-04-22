@@ -242,6 +242,8 @@ function _enterApp(){
   if(!data._onboarded)setTimeout(function(){showOnboarding();},500);
   fetchWeather();
   _loadFromCloud().then(function(){render();});
+  setInterval(function(){if(_currentUser&&data){_syncToCloud();}},30000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&_currentUser){_loadFromCloud().then(function(){render();});}});
 }
 function _queueSync(){clearTimeout(_syncTimer);_syncTimer=setTimeout(function(){_syncToCloud();},2000);}
 async function _loadFromCloud(){
