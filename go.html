@@ -265,6 +265,10 @@ async function _loadFromCloud(){
         }
       });
     }
+    try{
+      var pRes=await fetch(_SB_URL+'/rest/v1/profiles?id=eq.'+_currentUser.id+'&select=avatar',{headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY}});
+      if(pRes.ok){var pData=await pRes.json();if(pData&&pData[0]&&pData[0].avatar){try{var extra=JSON.parse(pData[0].avatar);if(extra.height)data.profile.height=extra.height;if(extra.weight)data.profile.weight=extra.weight;if(extra.hospital)data.profile.hospital=extra.hospital;if(extra.dept)data.profile.dept=extra.dept;if(extra.notes&&extra.notes.length)data.notes=extra.notes;if(extra.handover!==undefined)data.handover=extra.handover;if(extra.favorites&&extra.favorites.length)data.favorites=extra.favorites;if(extra.contacts)data.contacts=extra.contacts;if(extra.achievements)data.achievements=extra.achievements;}catch(e2){}}}
+    }catch(e3){}
     saveData();
     _updateSyncDot('ok');
   }catch(e){console.warn('Cloud load error:',e);_updateSyncDot('error');}
@@ -280,11 +284,27 @@ async function _syncToCloud(){
       await fetch(_SB_URL+'/rest/v1/daily_logs',{method:'POST',headers:_sbHeaders,body:payload}).catch(function(){});
       await fetch(_SB_URL+'/rest/v1/daily_logs?user_id=eq.'+_currentUser.id+'&date=eq.'+dk,{method:'PATCH',headers:_sbHeaders,body:JSON.stringify({shift:log.shift,count:log.count||0,tax_mode:!!log.taxMode,meal_break:log.mealBreak||null})});
     }
-    var _syncName=_currentUser.name||((data&&data.profile)?data.profile.name:null);if(_syncName){
+    var _syncName=_currentUser.name||((data&&data.profile)?data.profile.name:null);
+    var _extraData=JSON.stringify({
+      height:data.profile.height||0,
+      weight:data.profile.weight||0,
+      hospital:data.profile.hospital||'',
+      dept:data.profile.dept||'',
+      notes:data.notes||[],
+      handover:data.handover||'',
+      favorites:data.favorites||[],
+      contacts:data.contacts||[],
+      achievements:data.achievements||{}
+    });
+    if(_syncName){
+      await fetch(_SB_URL+'/rest/v1/profiles?user_id=eq.'+_currentUser.id,{
+        method:'PATCH',headers:_sbHeaders,
+        body:JSON.stringify({name:_syncName,avatar:_extraData})
+      });
       await fetch(_SB_URL+'/rest/v1/profiles',{
         method:'POST',headers:_sbHeaders,
-        body:JSON.stringify({id:_currentUser.id,name:_syncName,title:'初级技师',avatar_type:'emoji',avatar_emoji:'\ud83d\udc68\u200d\u2695\ufe0f'})
-      });
+        body:JSON.stringify({id:_currentUser.id,name:_syncName,avatar:_extraData,avatar_type:'emoji',avatar_emoji:'\ud83d\udc68\u200d\u2695\ufe0f'})
+      }).catch(function(){});
     }
     _updateSyncDot('ok');
   }catch(e){console.warn('Sync error:',e);_updateSyncDot('error');}
